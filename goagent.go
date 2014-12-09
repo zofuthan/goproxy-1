@@ -26,12 +26,14 @@ func main() {
 		},
 		ResponsePlugins: map[string]ResponsePlugin{
 			"direct": &DirectResponsePlugin{},
+			"image":  &ImageResponsePlugin{},
 		},
 		RequestFilters: []RequestFilter{
 			&StripRequestFilter{},
 			&DirectRequestFilter{},
 		},
 		ResponseFilters: []ResponseFilter{
+			&ImageResponseFilter{},
 			&DirectResponseFilter{},
 		},
 	}
