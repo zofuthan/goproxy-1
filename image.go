@@ -10,15 +10,15 @@ import (
 	"strings"
 )
 
-type ImageResponsePlugin struct {
-	ResponsePlugin
+type ImageResponseFilter struct {
+	ResponseFilter
 }
 
-func (p ImageResponsePlugin) HandleResponse(c *PluginContext, rw http.ResponseWriter, req *http.Request, res *http.Response, resError error) error {
+func (f *ImageResponseFilter) HandleResponse(h *Handler, args *http.Header, rw http.ResponseWriter, req *http.Request, res *http.Response, resError error) error {
 	if resError != nil {
 		rw.WriteHeader(502)
 		fmt.Fprintf(rw, "Error: %s\n", resError)
-		c.H.Log.Printf("ImageResponsePlugin HandleResponse %s failed %s", req.Host, resError)
+		h.Log.Printf("ImageResponseFilter HandleResponse %s failed %s", req.Host, resError)
 		return resError
 	}
 	if !strings.HasPrefix(res.Header.Get("Content-Type"), "image/") {
@@ -27,7 +27,7 @@ func (p ImageResponsePlugin) HandleResponse(c *PluginContext, rw http.ResponseWr
 	}
 	img, _, err := image.Decode(res.Body)
 	if err != nil {
-		c.H.Log.Printf("ImageResponsePlugin HandleResponse failed %s", err)
+		h.Log.Printf("ImageResponseFilter HandleResponse failed %s", err)
 		return err
 	}
 	rw.WriteHeader(200)
@@ -42,4 +42,11 @@ func (p ImageResponsePlugin) HandleResponse(c *PluginContext, rw http.ResponseWr
 	}
 	rw.Header().Set("Connection", "close")
 	return jpeg.Encode(rw, img, &jpeg.Options{50})
+}
+
+func (f *ImageResponseFilter) Filter(req *http.Request, res *http.Response) (args *http.Header, err error) {
+	if strings.HasPrefix(res.Header.Get("Content-Type"), "image/") {
+		return nil, nil
+	}
+	return nil, nil
 }

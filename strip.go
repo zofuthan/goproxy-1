@@ -9,11 +9,11 @@ import (
 	"net/http"
 )
 
-type StripRequestPlugin struct {
-	RequestPlugin
+type StripRequestFilter struct {
+	RequestFilter
 }
 
-func (p StripRequestPlugin) HandleRequest(c *PluginContext, rw http.ResponseWriter, req *http.Request) (*http.Response, error) {
+func (f *StripRequestFilter) HandleRequest(h *Handler, args *http.Header, rw http.ResponseWriter, req *http.Request) (*http.Response, error) {
 	hijacker, ok := rw.(http.Hijacker)
 	if !ok {
 		return nil, errors.New("http.ResponseWriter does not implments Hijacker")
@@ -23,7 +23,7 @@ func (p StripRequestPlugin) HandleRequest(c *PluginContext, rw http.ResponseWrit
 		return nil, errors.New(fmt.Sprintf("http.ResponseWriter Hijack failed: %s", err))
 	}
 	conn.Write([]byte("HTTP/1.1 200 OK\r\n\r\n"))
-	c.H.Log.Printf("%s \"STRIP %s %s %s\" - -", req.RemoteAddr, req.Method, req.Host, req.Proto)
+	h.Log.Printf("%s \"STRIP %s %s %s\" - -", req.RemoteAddr, req.Method, req.Host, req.Proto)
 	cert, err := tls.LoadX509KeyPair("./certs/.google.com.crt", "./certs/.google.com.crt")
 	if err != nil {
 		return nil, errors.New(fmt.Sprintf("tls.LoadX509KeyPair failed: %s", err))
@@ -35,15 +35,26 @@ func (p StripRequestPlugin) HandleRequest(c *PluginContext, rw http.ResponseWrit
 	if err := tlsConn.Handshake(); err != nil {
 		return nil, errors.New(fmt.Sprintf("tlsConn.Handshake error: %s", err))
 	}
-	if pl, ok := c.H.Listener.(PushListener); ok {
+	if pl, ok := h.Listener.(PushListener); ok {
 		pl.Push(tlsConn, nil)
 		return nil, nil
 	}
-	loConn, err := net.Dial("tcp", c.H.Listener.Addr().String())
+	loConn, err := net.Dial("tcp", h.Listener.Addr().String())
 	if err != nil {
 		return nil, errors.New(fmt.Sprintf("net.Dial failed: %s", err))
 	}
 	go io.Copy(loConn, tlsConn)
 	go io.Copy(tlsConn, loConn)
+	return nil, nil
+}
+
+func (f *StripRequestFilter) Filter(req *http.Request) (args *http.Header, err error) {
+	if req.Method == "CONNECT" {
+		args := &http.Header{
+			"Foo": []string{"bar"},
+			"key": []string{"value"},
+		}
+		return args, nil
+	}
 	return nil, nil
 }
