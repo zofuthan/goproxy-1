@@ -8,8 +8,10 @@ import (
 )
 
 func main() {
-	// ca := &CA{"goagent", 2048}
-	// ca.Issue(true, "", 365*24*time.Hour)
+	// ca := NewCA("GoAgent", 2048)
+	// ca.Create("CA.crt", 365*24*time.Hour)
+	// cert, _ := ca.Issue("www.google.com", 365*24*time.Hour)
+	// log.Printf("cert %#v", cert)
 
 	addr := ":1080"
 	ln, err := Listen("tcp4", addr)
