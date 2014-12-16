@@ -27,6 +27,9 @@ func main() {
 			&DirectRequestFilter{},
 		},
 		ResponseFilters: []ResponseFilter{
+			&AlwaysRawResponseFilter{
+				Sites: []string{"www.baidu.com"},
+			},
 			&ImageResponseFilter{},
 			&RawResponseFilter{},
 		},

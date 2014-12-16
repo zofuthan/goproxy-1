@@ -46,7 +46,9 @@ func (f *ImageResponseFilter) HandleResponse(h *Handler, args *http.Header, rw h
 
 func (f *ImageResponseFilter) Filter(req *http.Request, res *http.Response) (args *http.Header, err error) {
 	if strings.HasPrefix(res.Header.Get("Content-Type"), "image/") {
-		return nil, nil
+		return &http.Header{
+			"foo": []string{"bar"},
+		}, nil
 	}
 	return nil, nil
 }
