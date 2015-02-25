@@ -4,6 +4,7 @@ import (
 	"crypto/tls"
 	"errors"
 	"fmt"
+	"github.com/golang/glog"
 	"io"
 	"net"
 	"net/http"
@@ -23,7 +24,7 @@ func (f *StripRequestFilter) HandleRequest(h *Handler, args *http.Header, rw htt
 		return nil, errors.New(fmt.Sprintf("http.ResponseWriter Hijack failed: %s", err))
 	}
 	conn.Write([]byte("HTTP/1.1 200 OK\r\n\r\n"))
-	h.Log.Printf("%s \"STRIP %s %s %s\" - -", req.RemoteAddr, req.Method, req.Host, req.Proto)
+	glog.Infof("%s \"STRIP %s %s %s\" - -", req.RemoteAddr, req.Method, req.Host, req.Proto)
 	cert, err := tls.LoadX509KeyPair("./certs/.google.com.crt", "./certs/.google.com.crt")
 	if err != nil {
 		return nil, errors.New(fmt.Sprintf("tls.LoadX509KeyPair failed: %s", err))

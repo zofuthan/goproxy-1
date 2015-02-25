@@ -1,7 +1,7 @@
 package main
 
 import (
-	"log"
+	"github.com/golang/glog"
 	"net/http"
 )
 
@@ -14,7 +14,7 @@ func (f *AlwaysRawResponseFilter) Filter(req *http.Request, res *http.Response) 
 	host := res.Header.Get("Host")
 	if host != "" && f.Sites != nil {
 		for _, site := range f.Sites {
-			// log.Printf("host %#v site %#v", host, site)
+			glog.Infof("host %#v site %#v", host, site)
 			if host == site {
 				return &http.Header{
 					"foo": []string{"bar"},

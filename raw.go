@@ -3,6 +3,7 @@ package main
 import (
 	"errors"
 	"fmt"
+	"github.com/golang/glog"
 	"io"
 	"net/http"
 )
@@ -18,7 +19,7 @@ func (f *RawResponseFilter) HandleResponse(h *Handler, args *http.Header, rw htt
 			fmt.Fprintf(rw, "Error: %s\n", resError)
 			return resError
 		}
-		h.Log.Printf("%s \"DIRECT %s %s %s\" %d %s", req.RemoteAddr, req.Method, req.URL.String(), req.Proto, res.StatusCode, res.Header.Get("Content-Length"))
+		glog.Infof("%s \"DIRECT %s %s %s\" %d %s", req.RemoteAddr, req.Method, req.URL.String(), req.Proto, res.StatusCode, res.Header.Get("Content-Length"))
 		rw.WriteHeader(res.StatusCode)
 		for key, values := range res.Header {
 			for _, value := range values {
@@ -30,7 +31,7 @@ func (f *RawResponseFilter) HandleResponse(h *Handler, args *http.Header, rw htt
 		if resError != nil {
 			rw.WriteHeader(502)
 			fmt.Fprintf(rw, "Error: %s\n", resError)
-			h.Log.Printf("NetDialTimeout %s failed %s", req.Host, resError)
+			glog.Infof("NetDialTimeout %s failed %s", req.Host, resError)
 			return resError
 		}
 		remoteConn, err := h.Net.NetDialTimeout("tcp", req.Host, h.Net.GetTimeout())

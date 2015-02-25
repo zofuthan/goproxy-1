@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"github.com/golang/glog"
 	"net/http"
 )
 
@@ -34,7 +35,7 @@ func (f *DirectRequestFilter) HandleRequest(h *Handler, args *http.Header, rw ht
 		res, err := h.Net.HttpClientDo(newReq)
 		return res, err
 	} else {
-		h.Log.Printf("%s \"DIRECT %s %s %s\" - -", req.RemoteAddr, req.Method, req.Host, req.Proto)
+		glog.Infof("%s \"DIRECT %s %s %s\" - -", req.RemoteAddr, req.Method, req.Host, req.Proto)
 		response := &http.Response{
 			StatusCode:    200,
 			ProtoMajor:    1,

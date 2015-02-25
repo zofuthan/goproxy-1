@@ -9,7 +9,7 @@ import (
 	"crypto/x509"
 	"crypto/x509/pkix"
 	"encoding/pem"
-	"log"
+	"github.com/golang/glog"
 	"math/big"
 	"net"
 	"os"
@@ -52,18 +52,18 @@ func (c *CA) Create(fileName string, vaildFor time.Duration) {
 
 	priv, err := rsa.GenerateKey(rand.Reader, c.rsaBits)
 	if err != nil {
-		log.Fatalf("failed to generate private key: %s", err)
+		glog.Fatalf("failed to generate private key: %s", err)
 	}
 
 	derBytes, err := x509.CreateCertificate(rand.Reader, &template, &template, &priv.PublicKey, priv)
 	if err != nil {
-		log.Fatalf("Failed to create certificate: %s", err)
+		glog.Fatalf("Failed to create certificate: %s", err)
 	}
 
 	outFile, err := os.Create(fileName)
 	defer outFile.Close()
 	if err != nil {
-		log.Fatalf("failed to open cert.crt for writing: %s", err)
+		glog.Fatalf("failed to open cert.crt for writing: %s", err)
 	}
 	pem.Encode(outFile, &pem.Block{Type: "CERTIFICATE", Bytes: derBytes})
 	pem.Encode(outFile, &pem.Block{Type: "RSA PRIVATE KEY", Bytes: x509.MarshalPKCS1PrivateKey(priv)})
@@ -108,22 +108,22 @@ func (c *CA) Issue(host string, vaildFor time.Duration) (*tls.Certificate, error
 
 	priv, err := rsa.GenerateKey(rand.Reader, c.rsaBits)
 	if err != nil {
-		log.Fatalf("failed to GenerateKey: %s", err)
+		glog.Fatalf("failed to GenerateKey: %s", err)
 	}
 
 	derBytes, err := x509.CreateCertificateRequest(rand.Reader, csrTemplate, priv)
 	if err != nil {
-		log.Fatalf("failed to CreateCertificateRequest: %s", err)
+		glog.Fatalf("failed to CreateCertificateRequest: %s", err)
 	}
 
 	pub, err := x509.ParsePKIXPublicKey(derBytes)
 	if err != nil {
-		log.Fatalf("failed to CreateCertificateRequest: %s", err)
+		glog.Fatalf("failed to CreateCertificateRequest: %s", err)
 	}
 
 	certBytes, err := x509.CreateCertificate(rand.Reader, certTemplate, c.rootCert, pub, c.rootPriv)
 	if err != nil {
-		log.Fatal("failed to CreateCertificate: %s", err)
+		glog.Fatal("failed to CreateCertificate: %s", err)
 	}
 
 	certPEM := make([]byte, 10240)
@@ -134,7 +134,7 @@ func (c *CA) Issue(host string, vaildFor time.Duration) (*tls.Certificate, error
 
 	tlsCert, err := tls.X509KeyPair(certPEM, certPEM)
 	if err != nil {
-		log.Fatal("failed to CreateCertificate: %s", err)
+		glog.Fatal("failed to CreateCertificate: %s", err)
 	} else {
 		c.certs[host] = &tlsCert
 	}

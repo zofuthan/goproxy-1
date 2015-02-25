@@ -1,7 +1,7 @@
 package main
 
 import (
-	"log"
+	"github.com/golang/glog"
 	"net"
 	"net/http"
 )
@@ -9,7 +9,6 @@ import (
 type Handler struct {
 	http.Handler
 	Listener        net.Listener
-	Log             *log.Logger
 	Net             Net2
 	RequestFilters  []RequestFilter
 	ResponseFilters []ResponseFilter
@@ -29,12 +28,12 @@ func (h Handler) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 	for i, reqfilter := range h.RequestFilters {
 		args, err := reqfilter.Filter(req)
 		if err != nil {
-			h.Log.Printf("ServeHTTP RequestFilter error: %v", err)
+			glog.Infof("ServeHTTP RequestFilter error: %v", err)
 		}
 		if args != nil || i == len(h.RequestFilters)-1 {
 			res, err := reqfilter.HandleRequest(&h, args, rw, req)
 			if err != nil {
-				h.Log.Printf("ServeHTTP HandleRequest error: %v", err)
+				glog.Infof("ServeHTTP HandleRequest error: %v", err)
 			}
 			if res == nil {
 				return
@@ -45,12 +44,12 @@ func (h Handler) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 				}
 				args, err := resfilter.Filter(req, res)
 				if err != nil {
-					h.Log.Printf("ServeHTTP ResponseFilter error: %v", err)
+					glog.Infof("ServeHTTP ResponseFilter error: %v", err)
 				}
 				if args != nil || j == len(h.ResponseFilters)-1 {
 					err := resfilter.HandleResponse(&h, args, rw, req, res, err)
 					if err != nil {
-						h.Log.Printf("ServeHTTP HandleResponse error: %v", err)
+						glog.Infof("ServeHTTP HandleResponse error: %v", err)
 					}
 					break
 				}

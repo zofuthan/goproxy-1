@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"github.com/golang/glog"
 	"image"
 	"image/jpeg"
 	_ "image/png"
@@ -18,7 +19,7 @@ func (f *ImageResponseFilter) HandleResponse(h *Handler, args *http.Header, rw h
 	if resError != nil {
 		rw.WriteHeader(502)
 		fmt.Fprintf(rw, "Error: %s\n", resError)
-		h.Log.Printf("ImageResponseFilter HandleResponse %s failed %s", req.Host, resError)
+		glog.Infof("ImageResponseFilter HandleResponse %s failed %s", req.Host, resError)
 		return resError
 	}
 	if !strings.HasPrefix(res.Header.Get("Content-Type"), "image/") {
@@ -27,7 +28,7 @@ func (f *ImageResponseFilter) HandleResponse(h *Handler, args *http.Header, rw h
 	}
 	img, _, err := image.Decode(res.Body)
 	if err != nil {
-		h.Log.Printf("ImageResponseFilter HandleResponse failed %s", err)
+		glog.Infof("ImageResponseFilter HandleResponse failed %s", err)
 		return err
 	}
 	rw.WriteHeader(200)

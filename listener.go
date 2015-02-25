@@ -1,7 +1,7 @@
 package main
 
 import (
-	"log"
+	"github.com/golang/glog"
 	"net"
 	"time"
 )
@@ -47,7 +47,7 @@ func Listen(network string, addr string) (net.Listener, error) {
 					if max := 1 * time.Second; tempDelay > max {
 						tempDelay = max
 					}
-					log.Printf("http: Accept error: %v; retrying in %v", e, tempDelay)
+					glog.Infof("http: Accept error: %v; retrying in %v", e, tempDelay)
 					time.Sleep(tempDelay)
 					continue
 				}
