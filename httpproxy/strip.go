@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/golang/glog"
+	"github.com/phuslu/goproxy/rootca"
 	"io"
 	"net"
 	"net/http"
@@ -12,6 +13,7 @@ import (
 
 type StripRequestFilter struct {
 	RequestFilter
+	CA *rootca.RootCA
 }
 
 func (f *StripRequestFilter) HandleRequest(h *Handler, args *http.Header, rw http.ResponseWriter, req *http.Request) (*http.Response, error) {

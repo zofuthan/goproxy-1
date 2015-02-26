@@ -16,7 +16,7 @@ import (
 	"time"
 )
 
-type rootca struct {
+type RootCA struct {
 	ca       *x509.Certificate
 	priv     *rsa.PrivateKey
 	derBytes []byte
@@ -27,7 +27,7 @@ type certPem struct {
 	keyFile  []byte
 }
 
-func NewCA(name string, vaildFor time.Duration, rsaBits int) (*rootca, error) {
+func NewCA(name string, vaildFor time.Duration, rsaBits int) (*RootCA, error) {
 	template := x509.Certificate{
 		IsCA:         true,
 		SerialNumber: big.NewInt(1),
@@ -57,10 +57,10 @@ func NewCA(name string, vaildFor time.Duration, rsaBits int) (*rootca, error) {
 		return nil, err
 	}
 
-	return &rootca{ca, priv, derBytes}, nil
+	return &RootCA{ca, priv, derBytes}, nil
 }
 
-func (r *rootca) Dump(filename string) error {
+func (r *RootCA) Dump(filename string) error {
 	outFile, err := os.Create(filename)
 	defer outFile.Close()
 	if err != nil {
@@ -71,8 +71,8 @@ func (r *rootca) Dump(filename string) error {
 	return nil
 }
 
-func NewCAFromFile(filename string) (*rootca, error) {
-	var r rootca
+func NewCAFromFile(filename string) (*RootCA, error) {
+	var r RootCA
 	var b *pem.Block
 	data, err := ioutil.ReadFile(filename)
 	if err != nil {
@@ -116,7 +116,7 @@ func getCommonName(domain string) (host string, err error) {
 	return
 }
 
-func (c *rootca) issue(host string, vaildFor time.Duration, rsaBits int) (*certPem, error) {
+func (c *RootCA) issue(host string, vaildFor time.Duration, rsaBits int) (*certPem, error) {
 	host, err := getCommonName(host)
 	if err != nil {
 		return nil, err
@@ -173,7 +173,7 @@ func (c *rootca) issue(host string, vaildFor time.Duration, rsaBits int) (*certP
 	return &certPem{certFile, keyFile}, nil
 }
 
-func (c *rootca) Issue(host string, vaildFor time.Duration, rsaBits int) (*tls.Certificate, error) {
+func (c *RootCA) Issue(host string, vaildFor time.Duration, rsaBits int) (*tls.Certificate, error) {
 	pem, err := c.issue(host, vaildFor, rsaBits)
 	if err != nil {
 		return nil, err
@@ -186,7 +186,7 @@ func (c *rootca) Issue(host string, vaildFor time.Duration, rsaBits int) (*tls.C
 	return &tlsCert, nil
 }
 
-func (c *rootca) IssueFile(host string, vaildFor time.Duration, rsaBits int) (string, error) {
+func (c *RootCA) IssueFile(host string, vaildFor time.Duration, rsaBits int) (string, error) {
 	pem, err := c.issue(host, vaildFor, rsaBits)
 	if err != nil {
 		return "", err
