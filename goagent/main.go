@@ -6,16 +6,38 @@ import (
 	"github.com/phuslu/goproxy/httpproxy"
 	"github.com/phuslu/goproxy/rootca"
 	"net/http"
+	"os"
 	"time"
 )
+
+func getCA() (*rootca.RootCA, error) {
+	filename := "CA.crt"
+	_, err := os.Stat(filename)
+	var ca *rootca.RootCA
+	if err == nil {
+		ca, err = rootca.NewCAFromFile(filename)
+		if err != nil {
+			return nil, err
+		}
+	} else {
+		ca, err = rootca.NewCA("GoAgent", 3*365*24*time.Hour, 2048)
+		if err != nil {
+			return nil, err
+		}
+		if err = ca.Dump("CA.crt"); err != nil {
+			return nil, err
+		}
+	}
+	return ca, nil
+}
 
 func main() {
 	flag.Set("logtostderr", "true")
 	flag.Parse()
 
-	ca, err := rootca.NewCA("GoAgent", 3*365*24*time.Hour, 2048)
+	ca, err := getCA()
 	if err != nil {
-		glog.Fatalf("rootca.NewCA(\"GoAgent\") failed: %s", err)
+		glog.Fatalf("getCA() failed: %s", err)
 	}
 
 	addr := ":1080"
