@@ -4,7 +4,6 @@ import (
 	"flag"
 	"github.com/golang/glog"
 	"github.com/phuslu/goproxy/httpproxy"
-	"github.com/phuslu/goproxy/rootca"
 	"net/http"
 	"time"
 )
@@ -13,29 +12,24 @@ func main() {
 	flag.Set("logtostderr", "true")
 	flag.Parse()
 
-	// ca := NewCA("GoAgent", 2048)
-	// ca.Create("CA.crt", 365*24*time.Hour)
-	// cert, _ := ca.Issue("www.google.com", 365*24*time.Hour)
-	// glog.Infof("cert %#v", cert)
-
 	addr := ":1080"
-	ln, err := Listen("tcp4", addr)
+	ln, err := httpproxy.Listen("tcp4", addr)
 	if err != nil {
 		glog.Fatalf("Listen(\"tcp\", %s) failed: %s", addr, err)
 	}
-	h := Handler{
+	h := httpproxy.Handler{
 		Listener: ln,
-		Net:      &SimpleNetwork{},
-		RequestFilters: []RequestFilter{
-			&StripRequestFilter{},
-			&DirectRequestFilter{},
+		Net:      &httpproxy.SimpleNetwork{},
+		RequestFilters: []httpproxy.RequestFilter{
+			&httpproxy.StripRequestFilter{},
+			&httpproxy.DirectRequestFilter{},
 		},
-		ResponseFilters: []ResponseFilter{
-			&AlwaysRawResponseFilter{
+		ResponseFilters: []httpproxy.ResponseFilter{
+			&httpproxy.AlwaysRawResponseFilter{
 				Sites: []string{"www.baidu.com"},
 			},
-			&ImageResponseFilter{},
-			&RawResponseFilter{},
+			&httpproxy.ImageResponseFilter{},
+			&httpproxy.RawResponseFilter{},
 		},
 	}
 	s := &http.Server{
