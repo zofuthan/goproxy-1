@@ -9,6 +9,7 @@ import (
 	"io"
 	"net"
 	"net/http"
+	"time"
 )
 
 type StripRequestFilter struct {
@@ -27,12 +28,12 @@ func (f *StripRequestFilter) HandleRequest(h *Handler, args *http.Header, rw htt
 	}
 	conn.Write([]byte("HTTP/1.1 200 OK\r\n\r\n"))
 	glog.Infof("%s \"STRIP %s %s %s\" - -", req.RemoteAddr, req.Method, req.Host, req.Proto)
-	cert, err := tls.LoadX509KeyPair("./certs/.google.com.crt", "./certs/.google.com.crt")
+	cert, err := f.CA.Issue(req.Host, 3*365*24*time.Hour, 2048)
 	if err != nil {
 		return nil, errors.New(fmt.Sprintf("tls.LoadX509KeyPair failed: %s", err))
 	}
 	tlsConfig := &tls.Config{
-		Certificates: []tls.Certificate{cert},
+		Certificates: []tls.Certificate{*cert},
 		ClientAuth:   tls.VerifyClientCertIfGiven}
 	tlsConn := tls.Server(conn, tlsConfig)
 	if err := tlsConn.Handshake(); err != nil {
@@ -52,6 +53,9 @@ func (f *StripRequestFilter) HandleRequest(h *Handler, args *http.Header, rw htt
 }
 
 func (f *StripRequestFilter) Filter(req *http.Request) (args *http.Header, err error) {
+	if f.CA == nil {
+		return nil, errors.New("StripRequestFilter.CA is nil")
+	}
 	if req.Method == "CONNECT" {
 		args := &http.Header{
 			"Foo": []string{"bar"},
