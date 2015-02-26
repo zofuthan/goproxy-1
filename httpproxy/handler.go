@@ -1,4 +1,4 @@
-package goproxy
+package httpproxy
 
 import (
 	"github.com/golang/glog"

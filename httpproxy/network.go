@@ -1,8 +1,7 @@
-package goproxy
+package httpproxy
 
 import (
 	"crypto/tls"
-	// "fmt"
 	"io"
 	"net"
 	"net/http"
