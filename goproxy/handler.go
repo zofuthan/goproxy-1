@@ -1,4 +1,4 @@
-package main
+package goproxy
 
 import (
 	"github.com/golang/glog"
