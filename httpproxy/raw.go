@@ -12,14 +12,14 @@ type RawResponseFilter struct {
 	ResponseFilter
 }
 
-func (f *RawResponseFilter) HandleResponse(h *Handler, args *http.Header, rw http.ResponseWriter, req *http.Request, res *http.Response, resError error) error {
-	if req.Method != "CONNECT" {
+func (f *RawResponseFilter) HandleResponse(h *Handler, args *http.Header, rw http.ResponseWriter, res *http.Response, resError error) error {
+	if res.Request.Method != "CONNECT" {
 		if resError != nil {
 			rw.WriteHeader(502)
 			fmt.Fprintf(rw, "Error: %s\n", resError)
 			return resError
 		}
-		glog.Infof("%s \"DIRECT %s %s %s\" %d %s", req.RemoteAddr, req.Method, req.URL.String(), req.Proto, res.StatusCode, res.Header.Get("Content-Length"))
+		glog.Infof("%s \"DIRECT %s %s %s\" %d %s", res.Request.RemoteAddr, res.Request.Method, res.Request.URL.String(), res.Request.Proto, res.StatusCode, res.Header.Get("Content-Length"))
 		rw.WriteHeader(res.StatusCode)
 		for key, values := range res.Header {
 			for _, value := range values {
@@ -31,10 +31,10 @@ func (f *RawResponseFilter) HandleResponse(h *Handler, args *http.Header, rw htt
 		if resError != nil {
 			rw.WriteHeader(502)
 			fmt.Fprintf(rw, "Error: %s\n", resError)
-			glog.Infof("NetDialTimeout %s failed %s", req.Host, resError)
+			glog.Infof("NetDialTimeout %s failed %s", res.Request.Host, resError)
 			return resError
 		}
-		remoteConn, err := h.Net.NetDialTimeout("tcp", req.Host, h.Net.GetTimeout())
+		remoteConn, err := h.Net.NetDialTimeout("tcp", res.Request.Host, h.Net.GetTimeout())
 		if err != nil {
 			return err
 		}
@@ -53,6 +53,6 @@ func (f *RawResponseFilter) HandleResponse(h *Handler, args *http.Header, rw htt
 	return nil
 }
 
-func (f *RawResponseFilter) Filter(req *http.Request, res *http.Response) (args *http.Header, err error) {
+func (f *RawResponseFilter) Filter(res *http.Response) (args *http.Header, err error) {
 	return nil, nil
 }

@@ -20,8 +20,8 @@ type RequestFilter interface {
 }
 
 type ResponseFilter interface {
-	HandleResponse(*Handler, *http.Header, http.ResponseWriter, *http.Request, *http.Response, error) error
-	Filter(req *http.Request, res *http.Response) (args *http.Header, err error)
+	HandleResponse(*Handler, *http.Header, http.ResponseWriter, *http.Response, error) error
+	Filter(res *http.Response) (args *http.Header, err error)
 }
 
 func (h Handler) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
@@ -42,12 +42,12 @@ func (h Handler) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 				if resfilter == nil {
 					break
 				}
-				args, err := resfilter.Filter(req, res)
+				args, err := resfilter.Filter(res)
 				if err != nil {
 					glog.Infof("ServeHTTP ResponseFilter error: %v", err)
 				}
 				if args != nil || j == len(h.ResponseFilters)-1 {
-					err := resfilter.HandleResponse(&h, args, rw, req, res, err)
+					err := resfilter.HandleResponse(&h, args, rw, res, err)
 					if err != nil {
 						glog.Infof("ServeHTTP HandleResponse error: %v", err)
 					}
