@@ -19,7 +19,6 @@ func (f *RawResponseFilter) HandleResponse(h *Handler, args *http.Header, rw htt
 			fmt.Fprintf(rw, "Error: %s\n", resError)
 			return resError
 		}
-		glog.Infof("%s \"DIRECT %s %s %s\" %d %s", res.Request.RemoteAddr, res.Request.Method, res.Request.URL.String(), res.Request.Proto, res.StatusCode, res.Header.Get("Content-Length"))
 		rw.WriteHeader(res.StatusCode)
 		for key, values := range res.Header {
 			for _, value := range values {

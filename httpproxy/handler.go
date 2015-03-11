@@ -26,6 +26,19 @@ type ResponseFilter interface {
 }
 
 func (h Handler) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
+	if req.Method != "CONNECT" && !req.URL.IsAbs() {
+		if req.TLS != nil {
+			req.URL.Scheme = "https"
+			if req.Host != "" {
+				req.URL.Host = req.Host
+			} else {
+				req.URL.Host = req.TLS.ServerName
+			}
+		} else {
+			req.URL.Scheme = "http"
+			req.URL.Host = req.Host
+		}
+	}
 	for i, reqfilter := range h.RequestFilters {
 		args, err := reqfilter.Filter(req)
 		if err != nil {
@@ -39,6 +52,7 @@ func (h Handler) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 			if res == nil {
 				return
 			}
+			res.Request = req
 			for j, resfilter := range h.ResponseFilters {
 				if resfilter == nil {
 					break
