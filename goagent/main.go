@@ -4,6 +4,7 @@ import (
 	"flag"
 	"github.com/golang/glog"
 	"github.com/phuslu/goproxy/httpproxy"
+	"github.com/phuslu/goproxy/net2"
 	"github.com/phuslu/goproxy/rootca"
 	"net/http"
 	"os"
@@ -47,7 +48,7 @@ func main() {
 	}
 	h := httpproxy.Handler{
 		Listener: ln,
-		Net:      &httpproxy.SimpleNetwork{},
+		Net:      &net2.SimpleNetwork{},
 		RequestFilters: []httpproxy.RequestFilter{
 			&httpproxy.StripRequestFilter{CA: ca},
 			&httpproxy.DirectRequestFilter{},

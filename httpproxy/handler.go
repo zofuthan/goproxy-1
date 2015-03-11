@@ -2,6 +2,7 @@ package httpproxy
 
 import (
 	"github.com/golang/glog"
+	"github.com/phuslu/goproxy/net2"
 	"net"
 	"net/http"
 )
@@ -9,7 +10,7 @@ import (
 type Handler struct {
 	http.Handler
 	Listener        net.Listener
-	Net             Net2
+	Net             net2.Net2
 	RequestFilters  []RequestFilter
 	ResponseFilters []ResponseFilter
 }
