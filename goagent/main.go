@@ -51,7 +51,7 @@ func main() {
 		Net:      &net2.SimpleNetwork{},
 		RequestFilters: []httpproxy.RequestFilter{
 			&httpproxy.StripRequestFilter{CA: ca},
-			&httpproxy.DirectRequestFilter{},
+			&GAERequestFilter{},
 		},
 		ResponseFilters: []httpproxy.ResponseFilter{
 			&httpproxy.RawResponseFilter{},
