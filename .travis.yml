@@ -9,4 +9,4 @@ env:
  - GOMAXPROCS=2
 
 script:
- - go test -tags integration ./...
+ - go get github.com/phuslu/goproxy/goagent
