@@ -8,7 +8,7 @@ import (
 	"crypto/x509/pkix"
 	"encoding/pem"
 	"fmt"
-	"github.com/golang/net/publicsuffix"
+	"golang.org/x/net/publicsuffix"
 	"io/ioutil"
 	"math/big"
 	"os"
