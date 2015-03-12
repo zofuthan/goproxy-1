@@ -51,7 +51,10 @@ func main() {
 		Net:      &net2.SimpleNetwork{},
 		RequestFilters: []httpproxy.RequestFilter{
 			&httpproxy.StripRequestFilter{CA: ca},
-			&GAERequestFilter{},
+			&GAERequestFilter{
+				AppIDs: []string{"goagenta"},
+				Schema: "https",
+			},
 		},
 		ResponseFilters: []httpproxy.ResponseFilter{
 			&httpproxy.RawResponseFilter{},

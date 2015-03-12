@@ -15,7 +15,7 @@ import (
 
 const (
 	appspotDomain string = "appspot.com"
-	goagentPath   string = "/_gh"
+	goagentPath   string = "/_gh/"
 )
 
 type GAERequestFilter struct {
