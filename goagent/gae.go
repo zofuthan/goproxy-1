@@ -80,7 +80,13 @@ func (g *GAERequestFilter) decodeResponse(res *http.Response) (*http.Response, e
 		return nil, err
 	}
 	r := bufio.NewReader(flate.NewReader(&io.LimitedReader{res.Body, int64(length)}))
-	return http.ReadResponse(r, res.Request)
+	res1, err := http.ReadResponse(r, res.Request)
+	if err != nil {
+		return nil, err
+	}
+	res1.Body = res.Body
+	res1.Request = res.Request
+	return res1, nil
 }
 
 func (g *GAERequestFilter) HandleRequest(h *httpproxy.Handler, args *http.Header, rw http.ResponseWriter, req *http.Request) (*http.Response, error) {
@@ -95,7 +101,7 @@ func (g *GAERequestFilter) HandleRequest(h *httpproxy.Handler, args *http.Header
 	if err == nil {
 		glog.Infof("%s \"GAE %s %s %s\" %d %s", req.RemoteAddr, req.Method, req.URL.String(), req.Proto, res.StatusCode, res.Header.Get("Content-Length"))
 	}
-	return res, err
+	return g.decodeResponse(res)
 }
 
 func (g *GAERequestFilter) Filter(req *http.Request) (args *http.Header, err error) {
