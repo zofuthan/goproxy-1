@@ -80,6 +80,7 @@ func (g *GAERequestFilter) encodeRequest(req *http.Request) (*http.Request, erro
 		return nil, err
 	}
 	req1.Header.Add("Conntent-Length", strconv.FormatInt(bodyLength, 10))
+	req1.ContentLength = bodyLength
 	return req1, nil
 }
 
