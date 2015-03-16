@@ -55,15 +55,18 @@ func copyRequest(w io.Writer, req *http.Request) error {
 func (g *GAERequestFilter) encodeRequest(req *http.Request) (*http.Request, error) {
 	var b bytes.Buffer
 	var err error
+	var gw *gzip.Writer
 	if req.TransferEncoding == nil || req.ContentLength < 1*1024*1024 {
-		gw := gzip.NewWriter(&b)
-		defer gw.Flush()
+		gw = gzip.NewWriter(&b)
 		err = copyRequest(gw, req)
 	} else {
 		err = copyRequest(&b, req)
 	}
 	if err != nil {
 		return nil, err
+	}
+	if gw != nil {
+		gw.Flush()
 	}
 	url := fmt.Sprintf("%s://%s.%s%s", g.Schema, g.pickAppID(), appspotDomain, goagentPath)
 	req1, err := http.NewRequest("POST", url, &b)
@@ -94,14 +97,14 @@ func (g *GAERequestFilter) decodeResponse(res *http.Response) (*http.Response, e
 }
 
 func (g *GAERequestFilter) HandleRequest(h *httpproxy.Handler, args *http.Header, rw http.ResponseWriter, req *http.Request) (*http.Response, error) {
-	gaeReq, err := g.encodeRequest(req)
+	req1, err := g.encodeRequest(req)
 	if err != nil {
 		rw.WriteHeader(502)
 		fmt.Fprintf(rw, "Error: %s\n", err)
 		return nil, err
 	}
-	gaeReq.Header = req.Header
-	res, err := h.Net.HttpClientDo(gaeReq)
+	req1.Header = req.Header
+	res, err := h.Net.HttpClientDo(req1)
 	if err == nil {
 		glog.Infof("%s \"GAE %s %s %s\" %d %s", req.RemoteAddr, req.Method, req.URL.String(), req.Proto, res.StatusCode, res.Header.Get("Content-Length"))
 	}
