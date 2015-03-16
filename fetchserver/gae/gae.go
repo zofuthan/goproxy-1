@@ -41,15 +41,29 @@ func handlerError(w http.ResponseWriter, html string, code int) {
 	w.Write([]byte(html))
 }
 
-func copyResponse(w io.Writer, resp *http.Response) {
-	fmt.Fprintf(w, "%s %s\r\n", resp.Proto, resp.Status)
+func copyResponse(w io.Writer, resp *http.Response) error {
+	var err error
+	_, err = fmt.Fprintf(w, "%s %s\r\n", resp.Proto, resp.Status)
+	if err != nil {
+		return err
+	}
 	for key, values := range resp.Header {
 		for _, value := range values {
-			fmt.Fprintf(w, "%s: %s\r\n", key, value)
+			_, err = fmt.Fprintf(w, "%s: %s\r\n", key, value)
+			if err != nil {
+				return err
+			}
 		}
 	}
-	w.Write([]byte("\r\n"))
-	io.Copy(w, resp.Body)
+	_, err = w.Write([]byte("\r\n"))
+	if err != nil {
+		return err
+	}
+	_, err = io.Copy(w, resp.Body)
+	if err != nil {
+		return err
+	}
+	return nil
 }
 
 func handler(w http.ResponseWriter, r *http.Request) {
