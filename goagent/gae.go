@@ -3,12 +3,12 @@ package main
 import (
 	"bufio"
 	"bytes"
-	"compress/flate"
-	"encoding/binary"
+	"compress/gzip"
 	"fmt"
 	"github.com/golang/glog"
 	"github.com/phuslu/goproxy/httpproxy"
 	"io"
+	"io/ioutil"
 	"net/http"
 	"strconv"
 )
@@ -27,80 +27,70 @@ func (g *GAERequestFilter) pickAppID() string {
 	return g.AppIDs[0]
 }
 
-func (g *GAERequestFilter) encodeRequest(req *http.Request) (*http.Request, error) {
-	var b bytes.Buffer
+func copyRequest(w io.Writer, req *http.Request) error {
 	var err error
-	w, err := flate.NewWriter(&b, 9)
-	defer w.Close()
+	_, err = fmt.Fprintf(w, "%s %s %s\r\n", req.Method, req.URL.String(), "HTTP/1.1")
 	if err != nil {
-		return nil, err
-	}
-	_, err = fmt.Fprintf(w, "%s %s %s\r\n", req.Method, req.URL.String(), req.Proto)
-	if err != nil {
-		return nil, err
+		return err
 	}
 	for key, values := range req.Header {
 		for _, value := range values {
-			_, err := fmt.Fprintf(w, "%s: %s\r\n", key, value)
+			_, err = fmt.Fprintf(w, "%s: %s\r\n", key, value)
 			if err != nil {
-				return nil, err
+				return err
 			}
 		}
 	}
 	_, err = w.Write([]byte("\r\n"))
 	if err != nil {
-		return nil, err
+		return err
 	}
-	err = w.Flush()
+	_, err = io.Copy(w, req.Body)
 	if err != nil {
-		return nil, err
+		return err
 	}
-	err = w.Close()
-	if err != nil {
-		return nil, err
-	}
-	var b0 bytes.Buffer
-	binary.Write(&b0, binary.BigEndian, int16(b.Len()))
-	url := fmt.Sprintf("%s://%s.%s%s", g.Schema, g.pickAppID(), appspotDomain, goagentPath)
-	var body io.Reader
-	var bodyLength int64
-	if s := req.Header.Get("Content-Length"); s != "" {
-		body = io.MultiReader(&b0, &b, req.Body)
-		bodyLength, err = strconv.ParseInt(s, 10, 64)
-		if err != nil {
-			return nil, err
-		}
-		bodyLength += int64(2 + b.Len())
+	return nil
+}
+
+func (g *GAERequestFilter) encodeRequest(req *http.Request) (*http.Request, error) {
+	var b bytes.Buffer
+	var err error
+	if req.TransferEncoding == nil || req.ContentLength < 1*1024*1024 {
+		gw := gzip.NewWriter(&b)
+		defer gw.Flush()
+		err = copyRequest(gw, req)
 	} else {
-		body = io.MultiReader(&b0, &b)
-		bodyLength = int64(2 + b.Len())
+		err = copyRequest(&b, req)
 	}
-	req1, err := http.NewRequest("POST", url, body)
 	if err != nil {
 		return nil, err
 	}
-	req1.Header.Add("Conntent-Length", strconv.FormatInt(bodyLength, 10))
-	req1.ContentLength = bodyLength
+	url := fmt.Sprintf("%s://%s.%s%s", g.Schema, g.pickAppID(), appspotDomain, goagentPath)
+	req1, err := http.NewRequest("POST", url, &b)
+	if err != nil {
+		return nil, err
+	}
+	req1.Header.Set("Conntent-Length", strconv.Itoa(b.Len()))
+	req1.ContentLength = int64(b.Len())
 	return req1, nil
 }
 
 func (g *GAERequestFilter) decodeResponse(res *http.Response) (*http.Response, error) {
-	if res.StatusCode >= 300 {
+	if res.StatusCode != 200 {
 		return res, nil
 	}
-	var length int16
-	err := binary.Read(res.Body, binary.BigEndian, &length)
-	if err != nil {
-		return nil, err
+	var err error
+	var resp *http.Response
+	if "gzip" == res.Header.Get("X-Content-Encoding") {
+		r, err := gzip.NewReader(res.Body)
+		if err != nil {
+			return nil, err
+		}
+		resp, err = http.ReadResponse(bufio.NewReader(r), res.Request)
+	} else {
+		resp, err = http.ReadResponse(bufio.NewReader(ioutil.NopCloser(res.Body)), res.Request)
 	}
-	r := bufio.NewReader(flate.NewReader(&io.LimitedReader{res.Body, int64(length)}))
-	res1, err := http.ReadResponse(r, res.Request)
-	if err != nil {
-		return nil, err
-	}
-	res1.Body = res.Body
-	res1.Request = res.Request
-	return res1, nil
+	return resp, err
 }
 
 func (g *GAERequestFilter) HandleRequest(h *httpproxy.Handler, args *http.Header, rw http.ResponseWriter, req *http.Request) (*http.Response, error) {
