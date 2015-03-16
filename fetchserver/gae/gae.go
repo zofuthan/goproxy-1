@@ -29,17 +29,27 @@ func favicon(w http.ResponseWriter, r *http.Request) {
 }
 
 func robots(w http.ResponseWriter, r *http.Request) {
-	w.WriteHeader(http.StatusOK)
+	w.Header().Set("Content-Type", "text/plain; charset=utf-8")
 	w.Write([]byte("User-agent: *\nDisallow: /\n"))
 }
 
-func httpError(w http.ResponseWriter, html string, code int) {
-	w.WriteHeader(http.StatusOK)
+func handlerError(w http.ResponseWriter, html string, code int) {
 	fmt.Fprintf(w, "HTTP/1.1 %d\r\n", code)
 	fmt.Fprintf(w, "Content-Type: text/html; charset=utf-8\r\n")
 	fmt.Fprintf(w, "Content-Length: %d\r\n", len(html))
 	w.Write([]byte("\r\n"))
 	w.Write([]byte(html))
+}
+
+func copyResponse(w io.Writer, resp *http.Response) {
+	fmt.Fprintf(w, "%s %s\r\n", resp.Proto, resp.Status)
+	for key, values := range resp.Header {
+		for _, value := range values {
+			fmt.Fprintf(w, "%s: %s\r\n", key, value)
+		}
+	}
+	w.Write([]byte("\r\n"))
+	io.Copy(w, resp.Body)
 }
 
 func handler(w http.ResponseWriter, r *http.Request) {
@@ -57,17 +67,19 @@ func handler(w http.ResponseWriter, r *http.Request) {
 		context.Criticalf("http.ReadRequest(%#v) return %#v", r.Body, err)
 	}
 
-	params := make(map[string]string, 4)
+	params := make(map[string]string, 2)
 	paramPrefix := "X-Fetch-"
 	for key, values := range r.Header {
 		if strings.HasPrefix(key, paramPrefix) {
 			params[strings.ToLower(key[len(paramPrefix):])] = values[0]
 		}
+	}
+	for _, key := range params {
 		req.Header.Del(key)
 	}
 	if Password != "" {
 		if password, ok := params["password"]; !ok || password != Password {
-			httpError(w, "Wrong Password.", 403)
+			handlerError(w, "Wrong Password.", 403)
 		}
 	}
 
@@ -89,7 +101,7 @@ func handler(w http.ResponseWriter, r *http.Request) {
 				time.Sleep(time.Second)
 				deadline *= 2
 			} else if strings.Contains(message, "INVALID_URL") {
-				httpError(w, fmt.Sprintf("Invalid URL: %v", err), 501)
+				handlerError(w, fmt.Sprintf("Invalid URL: %v", err), 501)
 				return
 			} else if strings.Contains(message, "RESPONSE_TOO_LARGE") {
 				context.Errorf("URLFetchServiceError_RESPONSE_TOO_LARGE(type=%T, deadline=%v, url=%v)", err, deadline, req.URL)
@@ -101,30 +113,26 @@ func handler(w http.ResponseWriter, r *http.Request) {
 			}
 			continue
 		}
-		var out io.Writer
-		if resp.TransferEncoding != nil || resp.ContentLength >= 1024*1024 {
-			w.Header().Add("Content-Encoding", "gzip")
-			out = gzip.NewWriter(w)
+		w.Header().Set("Content-Type", "image/gif")
+		resp.Header.Set("Content-Length", strconv.FormatInt(resp.ContentLength, 10))
+		if resp.TransferEncoding == nil && resp.ContentLength <= 1024*1024 {
+			w.Header().Set("X-Content-Encoding", "gzip")
+			gw := gzip.NewWriter(w)
+			defer gw.Close()
+			copyResponse(gw, resp)
+		} else {
+			copyResponse(w, resp)
 		}
-		fmt.Fprintf(out, "%s %s\r\n", resp.Proto, resp.Status)
-		for key, values := range resp.Header {
-			for _, value := range values {
-				fmt.Fprintf(out, "%s: %s\r\n", key, value)
-			}
-		}
-		out.Write([]byte("\r\n"))
-		io.Copy(out, resp.Body)
 		return
 	}
-	httpError(w, fmt.Sprintf("Go Server Fetch Failed: %v", errors), 502)
+	handlerError(w, fmt.Sprintf("Go Server Fetch Failed: %v", errors), 502)
 }
 
 func root(w http.ResponseWriter, r *http.Request) {
 	context := appengine.NewContext(r)
 	version, _ := strconv.ParseInt(strings.Split(appengine.VersionID(context), ".")[1], 10, 64)
 	ctime := time.Unix(version/(1<<28)+8*3600, 0).Format(time.RFC3339)
-	w.WriteHeader(http.StatusOK)
-	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+	w.Header().Set("Content-Type", "text/plain; charset=utf-8")
 	fmt.Fprintf(w, "GoAgent go server %s works, deployed at %s\n", Version, ctime)
 }
 
