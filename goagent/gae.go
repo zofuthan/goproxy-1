@@ -73,7 +73,9 @@ func (g *GAERequestFilter) encodeRequest(req *http.Request) (*http.Request, erro
 	if err != nil {
 		return nil, err
 	}
-	req1.Header.Set("Conntent-Length", strconv.Itoa(b.Len()))
+	if gw != nil {
+		req1.Header.Set("Content-Encoding", "gzip")
+	}
 	req1.ContentLength = int64(b.Len())
 	return req1, nil
 }
