@@ -60,7 +60,7 @@ func main() {
 			&httpproxy.StripRequestFilter{CA: ca},
 			&GAERequestFilter{
 				AppIDs: []string{"phuslua"},
-				Schema: "https",
+				Schema: "http",
 			},
 		},
 		ResponseFilters: []httpproxy.ResponseFilter{
