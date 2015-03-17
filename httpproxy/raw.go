@@ -33,7 +33,7 @@ func (f *RawResponseFilter) HandleResponse(h *Handler, args *http.Header, rw htt
 			glog.Infof("NetDialTimeout %s failed %s", res.Request.Host, resError)
 			return resError
 		}
-		remoteConn, err := h.Net.NetDialTimeout("tcp", res.Request.Host, h.Net.GetTimeout())
+		remoteConn, err := h.Transport.Dial("tcp", res.Request.Host)
 		if err != nil {
 			return err
 		}

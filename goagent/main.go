@@ -4,8 +4,8 @@ import (
 	"flag"
 	"github.com/golang/glog"
 	"github.com/phuslu/goproxy/httpproxy"
-	"github.com/phuslu/goproxy/net2"
 	"github.com/phuslu/goproxy/rootca"
+	"net"
 	"net/http"
 	"os"
 	"time"
@@ -48,7 +48,14 @@ func main() {
 	}
 	h := httpproxy.Handler{
 		Listener: ln,
-		Net:      &net2.SimpleNetwork{},
+		Transport: &http.Transport{
+			Proxy: http.ProxyFromEnvironment,
+			Dial: (&net.Dialer{
+				Timeout:   30 * time.Second,
+				KeepAlive: 30 * time.Second,
+			}).Dial,
+			TLSHandshakeTimeout: 10 * time.Second,
+		},
 		RequestFilters: []httpproxy.RequestFilter{
 			&httpproxy.StripRequestFilter{CA: ca},
 			&GAERequestFilter{
