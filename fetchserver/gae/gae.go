@@ -70,7 +70,7 @@ func handler(w http.ResponseWriter, r *http.Request) {
 	var err error
 	context := appengine.NewContext(r)
 	context.Infof("Hanlde Request %#v\n", r)
-	if "gzip" == r.Header.Get("X-Content-Encoding") {
+	if strings.HasSuffix(r.RequestURI, "/gzip") {
 		r.Body, err = gzip.NewReader(r.Body)
 		if err != nil {
 			context.Criticalf("gzip.NewReader(%#v) return %#v", r.Body, err)
@@ -155,5 +155,6 @@ func init() {
 	http.HandleFunc("/favicon.ico", favicon)
 	http.HandleFunc("/robots.txt", robots)
 	http.HandleFunc("/_gh/", handler)
+	http.HandleFunc("/_gh/gzip", handler)
 	http.HandleFunc("/", root)
 }

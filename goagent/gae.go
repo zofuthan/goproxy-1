@@ -74,18 +74,17 @@ func (g *GAERequestFilter) encodeRequest(req *http.Request) (*http.Request, erro
 	if err != nil {
 		return nil, err
 	}
+	u := fmt.Sprintf("%s://%s.%s%s", g.Schema, g.pickAppID(), appspotDomain, goagentPath)
 	if gw != nil {
 		gw.Flush()
+		u += "gzip"
 	}
-	u := fmt.Sprintf("%s://%s.%s%s", g.Schema, g.pickAppID(), appspotDomain, goagentPath)
 	req1, err := http.NewRequest("POST", u, &b)
 	if err != nil {
 		return nil, err
 	}
+	req1.Header.Set("User-Agent", "B")
 	req1.ContentLength = int64(b.Len())
-	if gw != nil {
-		req1.Header.Set("X-Content-Encoding", "gzip")
-	}
 	return req1, nil
 }
 
