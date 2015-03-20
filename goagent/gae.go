@@ -40,7 +40,7 @@ func copyRequest(w io.Writer, req *http.Request) error {
 			}
 		}
 	}
-	_, err = w.Write([]byte("\r\n"))
+	_, err = io.WriteString(w, "\r\n")
 	if err != nil {
 		return err
 	}
@@ -67,15 +67,15 @@ func (g *GAERequestFilter) encodeRequest(req *http.Request) (*http.Request, erro
 	if gw != nil {
 		gw.Flush()
 	}
-	url := fmt.Sprintf("%s://%s.%s%s", g.Schema, g.pickAppID(), appspotDomain, goagentPath)
-	req1, err := http.NewRequest("POST", url, &b)
+	u := fmt.Sprintf("%s://%s.%s%s", g.Schema, g.pickAppID(), appspotDomain, goagentPath)
+	req1, err := http.NewRequest("POST", u, &b)
 	if err != nil {
 		return nil, err
 	}
+	req1.ContentLength = int64(b.Len())
 	if gw != nil {
 		req1.Header.Set("Content-Encoding", "gzip")
 	}
-	req1.ContentLength = int64(b.Len())
 	return req1, nil
 }
 

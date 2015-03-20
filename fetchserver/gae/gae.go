@@ -37,8 +37,8 @@ func handlerError(w http.ResponseWriter, html string, code int) {
 	fmt.Fprintf(w, "HTTP/1.1 %d\r\n", code)
 	fmt.Fprintf(w, "Content-Type: text/html; charset=utf-8\r\n")
 	fmt.Fprintf(w, "Content-Length: %d\r\n", len(html))
-	w.Write([]byte("\r\n"))
-	w.Write([]byte(html))
+	io.WriteString(w, "\r\n")
+	io.WriteString(w, html)
 }
 
 func copyResponse(w io.Writer, resp *http.Response) error {
@@ -55,7 +55,7 @@ func copyResponse(w io.Writer, resp *http.Response) error {
 			}
 		}
 	}
-	_, err = w.Write([]byte("\r\n"))
+	_, err = io.WriteString(w, "\r\n")
 	if err != nil {
 		return err
 	}
@@ -69,7 +69,7 @@ func copyResponse(w io.Writer, resp *http.Response) error {
 func handler(w http.ResponseWriter, r *http.Request) {
 	var err error
 	context := appengine.NewContext(r)
-	if "gzip" == r.Header.Get("Content-Encoding") {
+	if "gzip" == r.Header.Get("X-Content-Encoding") {
 		r.Body, err = gzip.NewReader(r.Body)
 		if err != nil {
 			context.Criticalf("gzip.NewReader(%#v) return %#v", r.Body, err)
