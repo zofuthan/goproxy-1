@@ -5,7 +5,6 @@ import (
 	"github.com/golang/glog"
 	"github.com/phuslu/goproxy/httpproxy"
 	"github.com/phuslu/goproxy/rootca"
-	"net"
 	"net/http"
 	"os"
 	"time"
@@ -49,13 +48,12 @@ func main() {
 	h := httpproxy.Handler{
 		Listener: ln,
 		Transport: &http.Transport{
-			Dial: (&net.Dialer{
-				Timeout:   30 * time.Second,
-				KeepAlive: 30 * time.Second,
-			}).Dial,
-			TLSHandshakeTimeout: 10 * time.Second,
-			Proxy:               nil,
-			DisableCompression:  true,
+			Dial:                  (&AggressiveDailer{}).Dial,
+			TLSHandshakeTimeout:   2 * time.Second,
+			ResponseHeaderTimeout: 2 * time.Second,
+			DisableKeepAlives:     true,
+			DisableCompression:    true,
+			Proxy:                 nil,
 		},
 		RequestFilters: []httpproxy.RequestFilter{
 			&httpproxy.StripRequestFilter{CA: ca},
