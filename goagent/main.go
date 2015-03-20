@@ -55,6 +55,7 @@ func main() {
 			}).Dial,
 			TLSHandshakeTimeout: 10 * time.Second,
 			Proxy:               nil,
+			DisableCompression:  true,
 		},
 		RequestFilters: []httpproxy.RequestFilter{
 			&httpproxy.StripRequestFilter{CA: ca},

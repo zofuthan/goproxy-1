@@ -30,7 +30,7 @@ func favicon(w http.ResponseWriter, r *http.Request) {
 
 func robots(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "text/plain; charset=utf-8")
-	w.Write([]byte("User-agent: *\nDisallow: /\n"))
+	io.WriteString(w, "User-agent: *\nDisallow: /\n")
 }
 
 func handlerError(w http.ResponseWriter, html string, code int) {
@@ -69,6 +69,7 @@ func copyResponse(w io.Writer, resp *http.Response) error {
 func handler(w http.ResponseWriter, r *http.Request) {
 	var err error
 	context := appengine.NewContext(r)
+	context.Infof("Hanlde Request %#v\n", r)
 	if "gzip" == r.Header.Get("X-Content-Encoding") {
 		r.Body, err = gzip.NewReader(r.Body)
 		if err != nil {

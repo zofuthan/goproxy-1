@@ -52,6 +52,16 @@ func copyRequest(w io.Writer, req *http.Request) error {
 }
 
 func (g *GAERequestFilter) encodeRequest(req *http.Request) (*http.Request, error) {
+	req.Header.Del("Vary")
+	req.Header.Del("Via")
+	req.Header.Del("X-Forwarded-For")
+	req.Header.Del("Proxy-Authorization")
+	req.Header.Del("Proxy-Connection")
+	req.Header.Del("Upgrade")
+	req.Header.Del("X-Chrome-Variations")
+	req.Header.Del("Connection")
+	req.Header.Del("Cache-Control")
+
 	var b bytes.Buffer
 	var err error
 	var gw *gzip.Writer
@@ -74,7 +84,7 @@ func (g *GAERequestFilter) encodeRequest(req *http.Request) (*http.Request, erro
 	}
 	req1.ContentLength = int64(b.Len())
 	if gw != nil {
-		req1.Header.Set("Content-Encoding", "gzip")
+		req1.Header.Set("X-Content-Encoding", "gzip")
 	}
 	return req1, nil
 }
