@@ -18,6 +18,18 @@ const (
 	goagentPath   string = "/_gh/"
 )
 
+var reqWriteExcludeHeader = map[string]bool{
+	"Vary":                true,
+	"Via":                 true,
+	"X-Forwarded-For":     true,
+	"Proxy-Authorization": true,
+	"Proxy-Connection":    true,
+	"Upgrade":             true,
+	"X-Chrome-Variations": true,
+	"Connection":          true,
+	"Cache-Control":       true,
+}
+
 type GAERequestFilter struct {
 	AppIDs []string
 	Scheme string
@@ -27,75 +39,70 @@ func (g *GAERequestFilter) pickAppID() string {
 	return g.AppIDs[0]
 }
 
-func copyRequest(w io.Writer, req *http.Request) error {
-	var err error
-	_, err = fmt.Fprintf(w, "%s %s %s\r\n", req.Method, req.URL.String(), "HTTP/1.1")
-	if err != nil {
-		return err
-	}
-	for key, values := range req.Header {
-		for _, value := range values {
-			_, err = fmt.Fprintf(w, "%s: %s\r\n", key, value)
-			if err != nil {
-				return err
-			}
-		}
-	}
-	_, err = io.WriteString(w, "\r\n")
-	if err != nil {
-		return err
-	}
-	_, err = io.Copy(w, req.Body)
-	if err != nil {
-		return err
-	}
-	return nil
-}
-
 func (g *GAERequestFilter) encodeRequest(req *http.Request) (*http.Request, error) {
-	req.Header.Del("Vary")
-	req.Header.Del("Via")
-	req.Header.Del("X-Forwarded-For")
-	req.Header.Del("Proxy-Authorization")
-	req.Header.Del("Proxy-Connection")
-	req.Header.Del("Upgrade")
-	req.Header.Del("X-Chrome-Variations")
-	req.Header.Del("Connection")
-	req.Header.Del("Cache-Control")
-
-	var b bytes.Buffer
 	var err error
+	var b bytes.Buffer
+	var w io.Writer
 	var gw *gzip.Writer
+
 	if req.TransferEncoding == nil || req.ContentLength < 1*1024*1024 {
 		gw = gzip.NewWriter(&b)
-		err = copyRequest(gw, req)
+		w = gw
 	} else {
-		err = copyRequest(&b, req)
+		w = &b
 	}
+
+	_, err = fmt.Fprintf(w, "%s %s %s\r\n", req.Method, req.URL.String(), "HTTP/1.1")
 	if err != nil {
 		return nil, err
 	}
+	err = req.Header.WriteSubset(w, reqWriteExcludeHeader)
+	if err != nil {
+		return nil, err
+	}
+	_, err = io.WriteString(w, "\r\n")
+	if err != nil {
+		return nil, err
+	}
+
+	var bodyReader io.Reader
+	if gw != nil {
+		_, err = io.Copy(w, req.Body)
+		if err != nil {
+			return nil, err
+		}
+		err = gw.Flush()
+		if err != nil {
+			return nil, err
+		}
+		bodyReader = &b
+	} else {
+		bodyReader = io.MultiReader(&b, req.Body)
+	}
+
 	u := &url.URL{
 		Scheme: g.Scheme,
 		Host:   fmt.Sprintf("%s.%s", g.pickAppID(), appspotDomain),
 		Path:   goagentPath,
 	}
 	if gw != nil {
-		gw.Flush()
 		u.Path += "gzip"
 	}
 	req1 := &http.Request{
-		Method:     "POST",
-		URL:        u,
-		Proto:      "HTTP/1.1",
-		ProtoMajor: 1,
-		ProtoMinor: 1,
+		Proto:         "HTTP/1.1",
+		ProtoMajor:    1,
+		ProtoMinor:    1,
+		Method:        "POST",
+		URL:           u,
+		Host:          u.Host,
+		ContentLength: int64(b.Len()),
+		Body:          ioutil.NopCloser(bodyReader),
 		Header: http.Header{
 			"User-Agent": []string{"B"},
 		},
-		Body:          ioutil.NopCloser(&b),
-		Host:          u.Host,
-		ContentLength: int64(b.Len()),
+	}
+	if gw != nil {
+		req1.Header.Set("X-Content-Encoding", "gzip")
 	}
 	return req1, nil
 }
