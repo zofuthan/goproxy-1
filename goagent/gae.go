@@ -115,7 +115,9 @@ func (g *GAERequestFilter) HandleRequest(h *httpproxy.Handler, args *http.Header
 	}
 	req1.Header = req.Header
 	res, err := h.Transport.RoundTrip(req1)
-	if err == nil {
+	if err != nil {
+		return nil, err
+	} else {
 		glog.Infof("%s \"GAE %s %s %s\" %d %s", req.RemoteAddr, req.Method, req.URL.String(), req.Proto, res.StatusCode, res.Header.Get("Content-Length"))
 	}
 	return g.decodeResponse(res)
