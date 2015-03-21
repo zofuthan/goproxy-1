@@ -41,7 +41,7 @@ func main() {
 		glog.Fatalf("getCA() failed: %s", err)
 	}
 
-	addr := "127.0.0.1:1080"
+	addr := "127.0.0.1:8087"
 	ln, err := httpproxy.Listen("tcp4", addr)
 	if err != nil {
 		glog.Fatalf("Listen(\"tcp4\", %s) failed: %s", addr, err)

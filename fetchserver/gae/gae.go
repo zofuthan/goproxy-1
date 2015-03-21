@@ -41,45 +41,24 @@ func handlerError(w http.ResponseWriter, html string, code int) {
 	io.WriteString(w, html)
 }
 
-func copyResponse(w io.Writer, resp *http.Response) error {
-	var err error
-	_, err = fmt.Fprintf(w, "%s %s\r\n", resp.Proto, resp.Status)
-	if err != nil {
-		return err
-	}
-	for key, values := range resp.Header {
-		for _, value := range values {
-			_, err = fmt.Fprintf(w, "%s: %s\r\n", key, value)
-			if err != nil {
-				return err
-			}
-		}
-	}
-	_, err = io.WriteString(w, "\r\n")
-	if err != nil {
-		return err
-	}
-	_, err = io.Copy(w, resp.Body)
-	if err != nil {
-		return err
-	}
-	return nil
-}
-
 func handler(w http.ResponseWriter, r *http.Request) {
 	var err error
 	context := appengine.NewContext(r)
 	context.Infof("Hanlde Request %#v\n", r)
+
+	var rc io.ReadCloser
 	if strings.HasSuffix(r.RequestURI, "/gzip") {
-		r.Body, err = gzip.NewReader(r.Body)
+		rc, err = gzip.NewReader(r.Body)
 		if err != nil {
 			context.Criticalf("gzip.NewReader(%#v) return %#v", r.Body, err)
 		}
+	} else {
+		rc = r.Body
 	}
 
-	req, err := http.ReadRequest(bufio.NewReader(r.Body))
+	req, err := http.ReadRequest(bufio.NewReader(rc))
 	if err != nil {
-		context.Criticalf("http.ReadRequest(%#v) return %#v", r.Body, err)
+		context.Criticalf("http.ReadRequest(%#v) return %#v", rc, err)
 	}
 
 	params := make(map[string]string, 2)
@@ -100,47 +79,62 @@ func handler(w http.ResponseWriter, r *http.Request) {
 
 	deadline := Deadline
 
-	var errors []string
+	var errors []error
+	var resp *http.Response
 	for i := 0; i < 2; i++ {
 		t := &urlfetch.Transport{Context: context, Deadline: deadline, AllowInvalidServerCertificate: true}
-		resp, err := t.RoundTrip(req)
-		if err != nil {
-			message := err.Error()
-			errors = append(errors, message)
-			if strings.Contains(message, "FETCH_ERROR") {
-				context.Warningf("URLFetchServiceError_FETCH_ERROR(type=%T, deadline=%v, url=%v)", err, deadline, req.URL)
-				time.Sleep(time.Second)
-				deadline *= 2
-			} else if strings.Contains(message, "DEADLINE_EXCEEDED") {
-				context.Warningf("URLFetchServiceError_DEADLINE_EXCEEDED(type=%T, deadline=%v, url=%v)", err, deadline, req.URL)
-				time.Sleep(time.Second)
-				deadline *= 2
-			} else if strings.Contains(message, "INVALID_URL") {
-				handlerError(w, fmt.Sprintf("Invalid URL: %v", err), 501)
-				return
-			} else if strings.Contains(message, "RESPONSE_TOO_LARGE") {
-				context.Warningf("URLFetchServiceError_RESPONSE_TOO_LARGE(type=%T, deadline=%v, url=%v)", err, deadline, req.URL)
-				req.Header.Set("Range", fmt.Sprintf("bytes=0-%d", FetchMaxSize))
-				deadline *= 2
-			} else {
-				context.Warningf("URLFetchServiceError UNKOWN(type=%T, deadline=%v, url=%v, error=%v)", err, deadline, req.URL, err)
-				time.Sleep(4 * time.Second)
-			}
-			continue
+		resp, err = t.RoundTrip(req)
+		if err == nil {
+			break
 		}
-		w.Header().Set("Content-Type", "image/gif")
-		resp.Header.Set("Content-Length", strconv.FormatInt(resp.ContentLength, 10))
-		if resp.TransferEncoding == nil && resp.ContentLength <= 1024*1024 {
-			w.Header().Set("X-Content-Encoding", "gzip")
-			gw := gzip.NewWriter(w)
-			defer gw.Close()
-			copyResponse(gw, resp)
+		errors = append(errors, err)
+		message := err.Error()
+		if strings.Contains(message, "FETCH_ERROR") {
+			context.Warningf("URLFetchServiceError_FETCH_ERROR(type=%T, deadline=%v, url=%v)", err, deadline, req.URL)
+			time.Sleep(time.Second)
+			deadline *= 2
+		} else if strings.Contains(message, "DEADLINE_EXCEEDED") {
+			context.Warningf("URLFetchServiceError_DEADLINE_EXCEEDED(type=%T, deadline=%v, url=%v)", err, deadline, req.URL)
+			time.Sleep(time.Second)
+			deadline *= 2
+		} else if strings.Contains(message, "INVALID_URL") {
+			handlerError(w, fmt.Sprintf("Invalid URL: %v", err), 501)
+			return
+		} else if strings.Contains(message, "RESPONSE_TOO_LARGE") {
+			context.Warningf("URLFetchServiceError_RESPONSE_TOO_LARGE(type=%T, deadline=%v, url=%v)", err, deadline, req.URL)
+			req.Header.Set("Range", fmt.Sprintf("bytes=0-%d", FetchMaxSize))
+			deadline *= 2
 		} else {
-			copyResponse(w, resp)
+			context.Warningf("URLFetchServiceError UNKOWN(type=%T, deadline=%v, url=%v, error=%v)", err, deadline, req.URL, err)
+			time.Sleep(4 * time.Second)
 		}
-		return
 	}
-	handlerError(w, fmt.Sprintf("Go Server Fetch Failed: %v", errors), 502)
+
+	if len(errors) == 2 {
+		handlerError(w, fmt.Sprintf("Go Server Fetch Failed: %v", errors), 502)
+	}
+
+	w.Header().Set("Content-Type", "image/gif")
+	resp.Header.Set("Content-Length", strconv.FormatInt(resp.ContentLength, 10))
+
+	var w1 io.Writer
+	if resp.TransferEncoding == nil && resp.ContentLength <= 1024*1024 {
+		w.Header().Set("X-Content-Encoding", "gzip")
+		gw := gzip.NewWriter(w)
+		defer gw.Close()
+		w1 = gw
+	} else {
+		w1 = w
+	}
+
+	fmt.Fprintf(w1, "%s %s\r\n", resp.Proto, resp.Status)
+	for key, values := range resp.Header {
+		for _, value := range values {
+			fmt.Fprintf(w1, "%s: %s\r\n", key, value)
+		}
+	}
+	io.WriteString(w1, "\r\n")
+	io.Copy(w1, resp.Body)
 }
 
 func root(w http.ResponseWriter, r *http.Request) {
