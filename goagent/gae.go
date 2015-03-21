@@ -10,6 +10,7 @@ import (
 	"io"
 	"io/ioutil"
 	"net/http"
+	"net/url"
 )
 
 const (
@@ -19,7 +20,7 @@ const (
 
 type GAERequestFilter struct {
 	AppIDs []string
-	Schema string
+	Scheme string
 }
 
 func (g *GAERequestFilter) pickAppID() string {
@@ -74,17 +75,28 @@ func (g *GAERequestFilter) encodeRequest(req *http.Request) (*http.Request, erro
 	if err != nil {
 		return nil, err
 	}
-	u := fmt.Sprintf("%s://%s.%s%s", g.Schema, g.pickAppID(), appspotDomain, goagentPath)
+	u := &url.URL{
+		Scheme: g.Scheme,
+		Host:   fmt.Sprintf("%s.%s", g.pickAppID(), appspotDomain),
+		Path:   goagentPath,
+	}
 	if gw != nil {
 		gw.Flush()
-		u += "gzip"
+		u.Path += "gzip"
 	}
-	req1, err := http.NewRequest("POST", u, &b)
-	if err != nil {
-		return nil, err
+	req1 := &http.Request{
+		Method:     "POST",
+		URL:        u,
+		Proto:      "HTTP/1.1",
+		ProtoMajor: 1,
+		ProtoMinor: 1,
+		Header: http.Header{
+			"User-Agent": []string{"B"},
+		},
+		Body:          ioutil.NopCloser(&b),
+		Host:          u.Host,
+		ContentLength: int64(b.Len()),
 	}
-	req1.Header.Set("User-Agent", "B")
-	req1.ContentLength = int64(b.Len())
 	return req1, nil
 }
 
