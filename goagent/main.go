@@ -40,18 +40,21 @@ func main() {
 		glog.Fatalf("getCA() failed: %s", err)
 	}
 
-	addr := "127.0.0.1:8087"
+	addr := "127.0.0.1:1080"
 	ln, err := httpproxy.Listen("tcp4", addr)
 	if err != nil {
 		glog.Fatalf("Listen(\"tcp4\", %s) failed: %s", addr, err)
 	}
+
+	dialer := &httpproxy.Dialer{
+		Timeout:   30 * time.Second,
+		KeepAlive: 30 * time.Second,
+	}
 	h := httpproxy.Handler{
 		Listener: ln,
 		Transport: &http.Transport{
-			Dial: (&httpproxy.Dialer{
-				Timeout:   30 * time.Second,
-				KeepAlive: 30 * time.Second,
-			}).Dial,
+			Dial:                  dialer.Dial,
+			DialTLS:               dialer.DialTLS,
 			TLSHandshakeTimeout:   2 * time.Second,
 			ResponseHeaderTimeout: 2 * time.Second,
 			DisableKeepAlives:     true,
@@ -62,7 +65,7 @@ func main() {
 			&httpproxy.StripRequestFilter{CA: ca},
 			&GAERequestFilter{
 				AppIDs: []string{"phuslua"},
-				Scheme: "http",
+				Scheme: "https",
 			},
 		},
 		ResponseFilters: []httpproxy.ResponseFilter{
