@@ -46,6 +46,18 @@ func main() {
 		glog.Fatalf("Listen(\"tcp4\", %s) failed: %s", addr, err)
 	}
 
+	google_hk := []string{
+		"58.176.217.88",
+		"58.176.217.99",
+		"58.176.217.104",
+		"58.176.217.109",
+		"58.176.217.114",
+	}
+	resolver := &httpproxy.AdvancedResolver{}
+	resolver.SetHost("google_hk", google_hk)
+	resolver.SetCNAME(".appspot.com", "google_hk")
+	resolver.SetCNAME(".google.com", "google_hk")
+
 	dialer := &httpproxy.Dialer{
 		Timeout:   30 * time.Second,
 		KeepAlive: 30 * time.Second,

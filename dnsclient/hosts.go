@@ -4,12 +4,12 @@
 
 // Read static host/IP entries from /etc/hosts.
 
-package godns
+package dnsclient
 
 import (
+	"net"
 	"sync"
 	"time"
-	"net"
 )
 
 const cacheMaxAge = 5 * time.Minute

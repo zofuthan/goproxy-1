@@ -2,7 +2,7 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package godns
+package dnsclient
 
 import (
 	"errors"
@@ -188,7 +188,7 @@ func (s byPriorityWeight) Less(i, j int) bool {
 }
 
 // shuffleByWeight shuffles SRV records by weight using the algorithm
-// described in RFC 2782.  
+// described in RFC 2782.
 func (addrs byPriorityWeight) shuffleByWeight() {
 	sum := 0
 	for _, addr := range addrs {
@@ -324,7 +324,7 @@ func net_write(c net.Conn, net string, p []byte) (n int, err error) {
 		n = i
 		return
 	case "", "udp", "udp4", "udp6":
-	    
+
 		return c.Write(p)
 	}
 	return -1, errors.New("Unexpected here")
