@@ -8,6 +8,7 @@ import (
 	"net"
 	"net/http"
 	"os"
+	"strconv"
 	"time"
 )
 
@@ -46,25 +47,19 @@ func main() {
 		glog.Fatalf("ReadConfigFile() failed: %s", err)
 	}
 
-	glog.Infof("common=%#v", common)
-
-	addr := net.JoinHostPort(common.ListenIp, common.ListenPassword)
+	addr := net.JoinHostPort(common.ListenIp, strconv.Itoa(common.ListenPort))
 	ln, err := httpproxy.Listen("tcp4", addr)
 	if err != nil {
 		glog.Fatalf("Listen(\"tcp4\", %s) failed: %s", addr, err)
 	}
 
-	google_hk := []string{
-		"58.176.217.88",
-		"58.176.217.99",
-		"58.176.217.104",
-		"58.176.217.109",
-		"58.176.217.114",
-	}
 	resolver := httpproxy.NewResolver(nil)
-	resolver.SetHost("google_hk", google_hk)
-	resolver.SetCNAME(".appspot.com", "google_hk")
-	resolver.SetCNAME(".google.com", "google_hk")
+	for name, iplist := range common.IplistMap {
+		resolver.SetHost(name, iplist)
+	}
+	for host, name := range common.HostMap {
+		resolver.SetCNAME(host, name)
+	}
 
 	dialer := &httpproxy.Dialer{
 		Timeout:     30 * time.Second,
@@ -85,8 +80,8 @@ func main() {
 		RequestFilters: []httpproxy.RequestFilter{
 			&httpproxy.StripRequestFilter{CA: ca},
 			&GAERequestFilter{
-				AppIDs: []string{"phuslua"},
-				Scheme: "https",
+				AppIDs: common.GaeAppids,
+				Scheme: common.GaeMode,
 			},
 		},
 		ResponseFilters: []httpproxy.ResponseFilter{
@@ -99,6 +94,7 @@ func main() {
 		WriteTimeout:   10 * time.Second,
 		MaxHeaderBytes: 1 << 20,
 	}
+	common.WriteSummary(os.Stderr)
 	glog.Infof("ListenAndServe on %s\n", h.Listener.Addr().String())
 	glog.Exitln(s.Serve(h.Listener))
 }

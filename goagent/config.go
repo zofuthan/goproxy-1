@@ -2,10 +2,18 @@ package main
 
 import (
 	"fmt"
+	"io"
 	"io/ioutil"
+	"net"
+	"path/filepath"
 	"regexp"
+	"runtime"
 	"strconv"
 	"strings"
+)
+
+const (
+	Version string = "4.0.0"
 )
 
 type CommonConfig struct {
@@ -164,6 +172,54 @@ func (c GoConfig) GetBool(section string, option string) bool {
 	default:
 		return false
 	}
+}
+
+func (cc *CommonConfig) WriteSummary(w io.Writer) error {
+	fmt.Fprintf(w, "------------------------------------------------------\n")
+	fmt.Fprintf(w, "GoAgent Version    : %s (golang/%s)\n", Version, runtime.Version())
+	fmt.Fprintf(w, "Listen Address     : %s\n", net.JoinHostPort(cc.ListenIp, strconv.Itoa(cc.ListenPort)))
+	if cc.ProxyEnable {
+		fmt.Fprintf(w, "Local Proxy        : %s\n", net.JoinHostPort(cc.ProxyHost, strconv.Itoa(cc.ProxyPort)))
+	}
+	if cc.ProxyEnable {
+		fmt.Fprintf(w, "Debug INFO         : %v\n", cc.ListenDebuginfo)
+	}
+	fmt.Fprintf(w, "GAE Mode           : %s\n", cc.GaeMode)
+	fmt.Fprintf(w, "GAE IPv6           : %v\n", cc.GaeIpv6)
+	fmt.Fprintf(w, "GAE APPID          : %s\n", strings.Join(cc.GaeAppids, "|"))
+	if cc.GaeValidate {
+		fmt.Fprintf(w, "GAE Validate       : %v\n", cc.GaeValidate)
+	}
+	if cc.GaeObfuscate {
+		fmt.Fprintf(w, "GAE Obfuscate      : %v\n", cc.GaeObfuscate)
+	}
+	if cc.GaeObfuscate {
+		fmt.Fprintf(w, "GAE Obfuscate      : %v\n", cc.GaeObfuscate)
+	}
+	if cc.PacEnable {
+		fmt.Fprintf(w, "Pac Server         : http://%s/%s\n", net.JoinHostPort(cc.PacIp, strconv.Itoa(cc.PacPort)), cc.PacFile)
+		if pacFile, err := filepath.Abs(cc.PacFile); err == nil {
+			fmt.Fprintf(w, "Pac File           : file://%s\n", pacFile)
+		}
+	}
+	if cc.PhpEnable {
+		fmt.Fprintf(w, "PHP Listen         : %s\n", cc.PhpListen)
+		fmt.Fprintf(w, "PHP FetchServer    : %s\n", strings.Join(cc.PhpFetchserver, "|"))
+	}
+	if cc.VpsEnable {
+		fmt.Fprintf(w, "VPS Listen         : %s\n", cc.VpsListen)
+		fmt.Fprintf(w, "VPS FetchServer    : %s\n", strings.Join(cc.VpsFetchserver, "|"))
+	}
+	if cc.VpsEnable {
+		fmt.Fprintf(w, "VPS Listen         : %s\n", cc.VpsListen)
+		fmt.Fprintf(w, "VPS FetchServer    : %s", strings.Join(cc.VpsFetchserver, "|"))
+	}
+	if cc.DnsEnable {
+		fmt.Fprintf(w, "DNS Listen         : %s\n", cc.DnsListen)
+		fmt.Fprintf(w, "DNS FetchServer    : %s\n", strings.Join(cc.DnsServers, "|"))
+	}
+	fmt.Fprintf(w, "------------------------------------------------------\n")
+	return nil
 }
 
 func ReadConfigFile(filename string) (*CommonConfig, error) {
