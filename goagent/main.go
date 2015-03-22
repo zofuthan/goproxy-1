@@ -53,14 +53,15 @@ func main() {
 		"58.176.217.109",
 		"58.176.217.114",
 	}
-	resolver := &httpproxy.AdvancedResolver{}
+	resolver := httpproxy.NewResolver(nil)
 	resolver.SetHost("google_hk", google_hk)
 	resolver.SetCNAME(".appspot.com", "google_hk")
 	resolver.SetCNAME(".google.com", "google_hk")
 
 	dialer := &httpproxy.Dialer{
-		Timeout:   30 * time.Second,
-		KeepAlive: 30 * time.Second,
+		Timeout:     30 * time.Second,
+		KeepAlive:   30 * time.Second,
+		DNSResolver: resolver,
 	}
 	h := httpproxy.Handler{
 		Listener: ln,

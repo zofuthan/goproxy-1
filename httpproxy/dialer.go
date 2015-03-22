@@ -2,19 +2,9 @@ package httpproxy
 
 import (
 	"crypto/tls"
-	"fmt"
 	"net"
-	"strings"
 	"time"
 )
-
-var googleIPList = []string{
-	"58.176.217.88",
-	"58.176.217.99",
-	"58.176.217.104",
-	"58.176.217.109",
-	"58.176.217.114",
-}
 
 type timeoutError struct{}
 
@@ -22,15 +12,19 @@ func (e *timeoutError) Error() string   { return "i/o timeout" }
 func (e *timeoutError) Timeout() bool   { return true }
 func (e *timeoutError) Temporary() bool { return true }
 
-var errTimeout error = &timeoutError{}
+var (
+	errTimeout      error    = &timeoutError{}
+	defaultResolver Resolver = NewResolver(nil)
+)
 
 type Dialer struct {
-	Timeout   time.Duration
-	Deadline  time.Time
-	LocalAddr net.Addr
-	DualStack bool
-	KeepAlive time.Duration
-	TLSConfig *tls.Config
+	Timeout     time.Duration
+	Deadline    time.Time
+	LocalAddr   net.Addr
+	DualStack   bool
+	KeepAlive   time.Duration
+	TLSConfig   *tls.Config
+	DNSResolver Resolver
 }
 
 func (d *Dialer) deadline() time.Time {
@@ -53,16 +47,20 @@ func (d *Dialer) Dial(network, addr string) (net.Conn, error) {
 		DualStack: d.DualStack,
 		KeepAlive: d.KeepAlive,
 	}
+	resolver := d.DNSResolver
+	if resolver == nil {
+		resolver = defaultResolver
+	}
 	if network == "tcp" || network == "tcp4" {
 		host, port, err := net.SplitHostPort(addr)
 		if err == nil {
-			if strings.HasSuffix(host, ".appspot.com") {
-				//TODO: net.IPAddr???
+			addrs, err := resolver.LookupHost(host)
+			if err == nil {
 				ipaddrs := make([]string, 0)
-				for _, ip := range googleIPList {
-					ipaddrs = append(ipaddrs, net.JoinHostPort(ip, port))
+				for _, addr := range addrs {
+					ipaddrs = append(ipaddrs, net.JoinHostPort(addr, port))
 				}
-				return d.dialMulti(network, ipaddrs)
+				return d.dialMultiTLS(network, ipaddrs)
 			}
 		}
 	}
@@ -117,13 +115,18 @@ func (d *Dialer) DialTLS(network, addr string) (net.Conn, error) {
 		DualStack: d.DualStack,
 		KeepAlive: d.KeepAlive,
 	}
+	resolver := d.DNSResolver
+	if resolver == nil {
+		resolver = defaultResolver
+	}
 	if network == "tcp" || network == "tcp4" {
 		host, port, err := net.SplitHostPort(addr)
 		if err == nil {
-			if strings.HasSuffix(host, ".appspot.com") {
+			addrs, err := resolver.LookupHost(host)
+			if err == nil {
 				ipaddrs := make([]string, 0)
-				for _, ip := range googleIPList {
-					ipaddrs = append(ipaddrs, net.JoinHostPort(ip, port))
+				for _, addr := range addrs {
+					ipaddrs = append(ipaddrs, net.JoinHostPort(addr, port))
 				}
 				return d.dialMultiTLS(network, ipaddrs)
 			}
