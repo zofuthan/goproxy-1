@@ -5,6 +5,7 @@ import (
 	"github.com/golang/glog"
 	"github.com/phuslu/goproxy/httpproxy"
 	"github.com/phuslu/goproxy/rootca"
+	"net"
 	"net/http"
 	"os"
 	"time"
@@ -40,7 +41,14 @@ func main() {
 		glog.Fatalf("getCA() failed: %s", err)
 	}
 
-	addr := "127.0.0.1:1080"
+	common, err := ReadConfigFile("proxy.ini")
+	if err != nil {
+		glog.Fatalf("ReadConfigFile() failed: %s", err)
+	}
+
+	glog.Infof("common=%#v", common)
+
+	addr := net.JoinHostPort(common.ListenIp, common.ListenPassword)
 	ln, err := httpproxy.Listen("tcp4", addr)
 	if err != nil {
 		glog.Fatalf("Listen(\"tcp4\", %s) failed: %s", addr, err)

@@ -1,7 +1,9 @@
 package main
 
 import (
+	"fmt"
 	"github.com/dlintw/goconf"
+	"regexp"
 	"strings"
 )
 
@@ -29,18 +31,6 @@ type CommonConfig struct {
 	GaeRegions          []string
 	GaeSslversion       string
 	GaePagespeed        bool
-	WithGAESites        []string
-	WithPHPSites        []string
-	CrlfSites           []string
-	NocrlfSites         []string
-	ForcehttpsSites     []string
-	NoforcehttpsSites   []string
-	FakehttpsSites      []string
-	NofakehttpsSites    []string
-	UrlRewriteMap       map[string]string
-	RuleMap             map[string]string
-	IplistCNames        map[string]string
-	IplistFixed         []string
 	PacEnable           bool
 	PacIp               string
 	PacPort             int
@@ -82,6 +72,20 @@ type CommonConfig struct {
 	UseragentString     string
 	LoveEnable          bool
 	LoveTip             []string
+
+	IplistCNames      map[string][]string
+	IplistFixed       []string
+	IpListMap         map[string]string
+	UrlRewriteMap     map[string]string
+	CrlfSites         []string
+	NocrlfSites       []string
+	ForcehttpsSites   []string
+	NoforcehttpsSites []string
+	FakehttpsSites    []string
+	NofakehttpsSites  []string
+	WithGAESites      []string
+	WithPHPSites      []string
+	WithVPSSites      []string
 }
 
 func getString(c *goconf.ConfigFile, section string, option string) string {
@@ -97,7 +101,7 @@ func getStrings(c *goconf.ConfigFile, section string, option string) []string {
 	if err != nil {
 		panic(err)
 	}
-	return strings.Split(value, "|")
+	return regexp.MustCompile(`[|,]`).Split(value, -1)
 }
 
 func getInt(c *goconf.ConfigFile, section string, option string) int {
@@ -118,7 +122,7 @@ func getBool(c *goconf.ConfigFile, section string, option string) bool {
 
 func ReadConfigFile(filename string) (*CommonConfig, error) {
 	cc := &CommonConfig{}
-	c, err := goconf.ReadConfigFile("something.config")
+	c, err := goconf.ReadConfigFile(filename)
 	if err != nil {
 		return nil, err
 	}
@@ -196,6 +200,74 @@ func ReadConfigFile(filename string) (*CommonConfig, error) {
 
 	cc.LoveEnable = getBool(c, "love", "enable")
 	cc.LoveTip = getStrings(c, "love", "tip")
+
+	cc.IplistCNames = make(map[string][]string)
+	if options, err := c.GetOptions("iplist"); err == nil {
+		for _, option := range options {
+			cc.IplistCNames[option] = getStrings(c, "iplist", option)
+		}
+	} else {
+		panic(err)
+	}
+
+	cc.IplistCNames = make(map[string][]string, 0)
+	cc.IplistFixed = make([]string, 0)
+	cc.IpListMap = make(map[string]string, 0)
+	cc.UrlRewriteMap = make(map[string]string, 0)
+	cc.CrlfSites = make([]string, 0)
+	cc.NocrlfSites = make([]string, 0)
+	cc.ForcehttpsSites = make([]string, 0)
+	cc.NoforcehttpsSites = make([]string, 0)
+	cc.FakehttpsSites = make([]string, 0)
+	cc.NofakehttpsSites = make([]string, 0)
+	cc.WithGAESites = make([]string, 0)
+	cc.WithPHPSites = make([]string, 0)
+	cc.WithVPSSites = make([]string, 0)
+	if options, err := c.GetOptions("profile"); err == nil {
+		for _, option := range options {
+			pattern := option
+			rules := getStrings(c, "profile", option)
+			for {
+				if len(rules) == 0 {
+					break
+				}
+				rule := rules[0]
+				rules = rules[1:]
+				switch rule {
+				case "crlf":
+					cc.CrlfSites = append(cc.CrlfSites, pattern)
+				case "nocrlf":
+					cc.NocrlfSites = append(cc.NocrlfSites, pattern)
+				case "forcehttps":
+					cc.ForcehttpsSites = append(cc.ForcehttpsSites, pattern)
+				case "noforcehttps":
+					cc.NoforcehttpsSites = append(cc.NoforcehttpsSites, pattern)
+				case "fakehttps":
+					cc.FakehttpsSites = append(cc.FakehttpsSites, pattern)
+				case "nofakehttps":
+					cc.NofakehttpsSites = append(cc.NofakehttpsSites, pattern)
+				case "withgae":
+					cc.WithGAESites = append(cc.WithGAESites, pattern)
+				case "withphp":
+					cc.WithPHPSites = append(cc.WithPHPSites, pattern)
+				case "withvps":
+					cc.WithVPSSites = append(cc.WithVPSSites, pattern)
+				case "direct":
+					cc.IpListMap[pattern] = pattern
+					cc.IplistCNames[pattern] = nil
+				default:
+					fmt.Printf("rule=%#v, pattern=%#v\n", rule, pattern)
+					if _, ok := cc.IplistCNames[rule]; ok {
+						cc.IpListMap[pattern] = rule
+					} else if strings.Contains(pattern, "\\") {
+						cc.UrlRewriteMap[pattern] = rule
+					}
+				}
+			}
+		}
+	} else {
+		panic(err)
+	}
 
 	return cc, nil
 }
