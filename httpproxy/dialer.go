@@ -58,22 +58,18 @@ func (d *Dialer) Dial(network, addr string) (net.Conn, error) {
 		if err == nil {
 			if strings.HasSuffix(host, ".appspot.com") {
 				//TODO: net.IPAddr???
-				ipaddrs := make([]net.Addr, 0)
+				ipaddrs := make([]string, 0)
 				for _, ip := range googleIPList {
-					ipaddr, err := net.ResolveIPAddr("ip", fmt.Sprintf("%s:%s", ip, port))
-					if err != nil {
-						return nil, err
-					}
-					ipaddrs = append(ipaddrs, ipaddr)
+					ipaddrs = append(ipaddrs, net.JoinHostPort(ip, port))
 				}
-				return d.dialMulti("ip", ipaddrs)
+				return d.dialMulti(network, ipaddrs)
 			}
 		}
 	}
 	return d1.Dial(network, addr)
 }
 
-func (d *Dialer) dialMulti(network string, addrs []net.Addr) (net.Conn, error) {
+func (d *Dialer) dialMulti(network string, addrs []string) (net.Conn, error) {
 	d1 := &net.Dialer{
 		Timeout:   d.Timeout,
 		Deadline:  d.Deadline,
@@ -86,11 +82,11 @@ func (d *Dialer) dialMulti(network string, addrs []net.Addr) (net.Conn, error) {
 		error
 	}
 	lane := make(chan racer, len(addrs))
-	for _, ra := range addrs {
-		go func(ra net.Addr) {
-			c, err := d1.Dial(network, ra.String())
+	for _, raddr := range addrs {
+		go func(raddr string) {
+			c, err := d1.Dial(network, raddr)
 			lane <- racer{c, err}
-		}(ra)
+		}(raddr)
 	}
 	lastErr := errTimeout
 	nracers := len(addrs)
@@ -125,23 +121,18 @@ func (d *Dialer) DialTLS(network, addr string) (net.Conn, error) {
 		host, port, err := net.SplitHostPort(addr)
 		if err == nil {
 			if strings.HasSuffix(host, ".appspot.com") {
-				//TODO: net.IPAddr???
-				ipaddrs := make([]net.Addr, 0)
+				ipaddrs := make([]string, 0)
 				for _, ip := range googleIPList {
-					ipaddr, err := net.ResolveIPAddr("ip", fmt.Sprintf("%s:%s", ip, port))
-					if err != nil {
-						return nil, err
-					}
-					ipaddrs = append(ipaddrs, ipaddr)
+					ipaddrs = append(ipaddrs, net.JoinHostPort(ip, port))
 				}
-				return d.dialMultiTLS("ip", ipaddrs)
+				return d.dialMultiTLS(network, ipaddrs)
 			}
 		}
 	}
 	return tls.DialWithDialer(d1, network, addr, d.TLSConfig)
 }
 
-func (d *Dialer) dialMultiTLS(network string, addrs []net.Addr) (net.Conn, error) {
+func (d *Dialer) dialMultiTLS(network string, addrs []string) (net.Conn, error) {
 	d1 := &net.Dialer{
 		Timeout:   d.Timeout,
 		Deadline:  d.Deadline,
@@ -154,20 +145,8 @@ func (d *Dialer) dialMultiTLS(network string, addrs []net.Addr) (net.Conn, error
 		error
 	}
 	lane := make(chan racer, len(addrs))
-	for _, ra := range addrs {
-		go func(ra net.Addr) {
-			//TODO: network == "ip4" ??
-			addr := ra.String()
-			conn, err := d1.Dial(network, addr)
-			if err != nil {
-				lane <- racer{conn, err}
-				return
-			}
-			colonPos := strings.LastIndex(addr, ":")
-			if colonPos == -1 {
-				colonPos = len(addr)
-			}
-			hostname := addr[:colonPos]
+	for _, raddr := range addrs {
+		go func(raddr string) {
 			config := d.TLSConfig
 			if config == nil {
 				config = &tls.Config{
@@ -176,28 +155,12 @@ func (d *Dialer) dialMultiTLS(network string, addrs []net.Addr) (net.Conn, error
 			}
 			if config.ServerName == "" {
 				c := *config
-				c.ServerName = hostname
+				c.ServerName = "www.gov.cn"
 				config = &c
 			}
-			tlsConn := tls.Client(conn, config)
-			var errChannel chan error
-			if d1.Timeout == 0 {
-				err = tlsConn.Handshake()
-			} else {
-				errChannel = make(chan error, 2)
-				time.AfterFunc(d1.Timeout, func() {
-					errChannel <- &timeoutError{}
-				})
-				go func() {
-					errChannel <- tlsConn.Handshake()
-				}()
-				err = <-errChannel
-			}
-			if err != nil {
-				conn.Close()
-			}
-			lane <- racer{tlsConn, err}
-		}(ra)
+			conn, err := tls.DialWithDialer(d1, network, raddr, config)
+			lane <- racer{conn, err}
+		}(raddr)
 	}
 	lastErr := errTimeout
 	nracers := len(addrs)
