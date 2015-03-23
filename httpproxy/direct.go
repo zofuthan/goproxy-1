@@ -10,7 +10,7 @@ type DirectRequestFilter struct {
 	RequestFilter
 }
 
-func (f *DirectRequestFilter) HandleRequest(h *Handler, args *http.Header, rw http.ResponseWriter, req *http.Request) (*http.Response, error) {
+func (f *DirectRequestFilter) HandleRequest(h *Handler, args *FilterArgs, rw http.ResponseWriter, req *http.Request) (*http.Response, error) {
 	if req.Method != "CONNECT" {
 		req1, err := http.NewRequest(req.Method, req.URL.String(), req.Body)
 		if err != nil {
@@ -37,6 +37,6 @@ func (f *DirectRequestFilter) HandleRequest(h *Handler, args *http.Header, rw ht
 	}
 }
 
-func (f *DirectRequestFilter) Filter(req *http.Request) (args *http.Header, err error) {
+func (f *DirectRequestFilter) Filter(req *http.Request) (args *FilterArgs, err error) {
 	return nil, nil
 }

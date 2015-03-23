@@ -12,7 +12,7 @@ type RawResponseFilter struct {
 	ResponseFilter
 }
 
-func (f *RawResponseFilter) HandleResponse(h *Handler, args *http.Header, rw http.ResponseWriter, res *http.Response, resError error) error {
+func (f *RawResponseFilter) HandleResponse(h *Handler, args *FilterArgs, rw http.ResponseWriter, res *http.Response, resError error) error {
 	if res.Request.Method != "CONNECT" {
 		if resError != nil {
 			rw.WriteHeader(502)
@@ -52,6 +52,6 @@ func (f *RawResponseFilter) HandleResponse(h *Handler, args *http.Header, rw htt
 	return nil
 }
 
-func (f *RawResponseFilter) Filter(res *http.Response) (args *http.Header, err error) {
+func (f *RawResponseFilter) Filter(res *http.Response) (args *FilterArgs, err error) {
 	return nil, nil
 }

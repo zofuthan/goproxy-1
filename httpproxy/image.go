@@ -15,7 +15,7 @@ type ImageResponseFilter struct {
 	ResponseFilter
 }
 
-func (f *ImageResponseFilter) HandleResponse(h *Handler, args *http.Header, rw http.ResponseWriter, res *http.Response, resError error) error {
+func (f *ImageResponseFilter) HandleResponse(h *Handler, args *FilterArgs, rw http.ResponseWriter, res *http.Response, resError error) error {
 	if resError != nil {
 		rw.WriteHeader(502)
 		fmt.Fprintf(rw, "Error: %s\n", resError)
@@ -45,11 +45,9 @@ func (f *ImageResponseFilter) HandleResponse(h *Handler, args *http.Header, rw h
 	return jpeg.Encode(rw, img, &jpeg.Options{50})
 }
 
-func (f *ImageResponseFilter) Filter(res *http.Response) (args *http.Header, err error) {
+func (f *ImageResponseFilter) Filter(res *http.Response) (args *FilterArgs, err error) {
 	if strings.HasPrefix(res.Header.Get("Content-Type"), "image/") {
-		return &http.Header{
-			"foo": []string{"bar"},
-		}, nil
+		return &FilterArgs{}, nil
 	}
 	return nil, nil
 }

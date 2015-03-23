@@ -14,14 +14,16 @@ type Handler struct {
 	ResponseFilters []ResponseFilter
 }
 
+type FilterArgs map[string]interface{}
+
 type RequestFilter interface {
-	HandleRequest(*Handler, *http.Header, http.ResponseWriter, *http.Request) (*http.Response, error)
-	Filter(req *http.Request) (args *http.Header, err error)
+	HandleRequest(*Handler, *FilterArgs, http.ResponseWriter, *http.Request) (*http.Response, error)
+	Filter(req *http.Request) (args *FilterArgs, err error)
 }
 
 type ResponseFilter interface {
-	HandleResponse(*Handler, *http.Header, http.ResponseWriter, *http.Response, error) error
-	Filter(res *http.Response) (args *http.Header, err error)
+	HandleResponse(*Handler, *FilterArgs, http.ResponseWriter, *http.Response, error) error
+	Filter(res *http.Response) (args *FilterArgs, err error)
 }
 
 func (h Handler) ServeHTTP(rw http.ResponseWriter, req *http.Request) {

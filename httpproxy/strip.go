@@ -17,7 +17,7 @@ type StripRequestFilter struct {
 	CA *rootca.RootCA
 }
 
-func (f *StripRequestFilter) HandleRequest(h *Handler, args *http.Header, rw http.ResponseWriter, req *http.Request) (*http.Response, error) {
+func (f *StripRequestFilter) HandleRequest(h *Handler, args *FilterArgs, rw http.ResponseWriter, req *http.Request) (*http.Response, error) {
 	hijacker, ok := rw.(http.Hijacker)
 	if !ok {
 		return nil, errors.New("http.ResponseWriter does not implments Hijacker")
@@ -52,16 +52,12 @@ func (f *StripRequestFilter) HandleRequest(h *Handler, args *http.Header, rw htt
 	return nil, nil
 }
 
-func (f *StripRequestFilter) Filter(req *http.Request) (args *http.Header, err error) {
+func (f *StripRequestFilter) Filter(req *http.Request) (args *FilterArgs, err error) {
 	if f.CA == nil {
 		return nil, errors.New("StripRequestFilter.CA is nil")
 	}
 	if req.Method == "CONNECT" {
-		args := &http.Header{
-			"Foo": []string{"bar"},
-			"key": []string{"value"},
-		}
-		return args, nil
+		return &FilterArgs{}, nil
 	}
 	return nil, nil
 }

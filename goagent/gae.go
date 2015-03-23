@@ -125,7 +125,7 @@ func (g *GAERequestFilter) decodeResponse(res *http.Response) (*http.Response, e
 	return resp, err
 }
 
-func (g *GAERequestFilter) HandleRequest(h *httpproxy.Handler, args *http.Header, rw http.ResponseWriter, req *http.Request) (*http.Response, error) {
+func (g *GAERequestFilter) HandleRequest(h *httpproxy.Handler, args *httpproxy.FilterArgs, rw http.ResponseWriter, req *http.Request) (*http.Response, error) {
 	req1, err := g.encodeRequest(req)
 	if err != nil {
 		rw.WriteHeader(502)
@@ -142,6 +142,6 @@ func (g *GAERequestFilter) HandleRequest(h *httpproxy.Handler, args *http.Header
 	return g.decodeResponse(res)
 }
 
-func (g *GAERequestFilter) Filter(req *http.Request) (args *http.Header, err error) {
+func (g *GAERequestFilter) Filter(req *http.Request) (args *httpproxy.FilterArgs, err error) {
 	return nil, nil
 }
