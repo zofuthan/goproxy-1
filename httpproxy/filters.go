@@ -31,9 +31,9 @@ type ForcehttpsRequestFilter struct {
 }
 
 func (f *ForcehttpsRequestFilter) Filter(req *http.Request) (args *FilterArgs, err error) {
-	if f.ForcehttpsSites != nil && f.NoforcehttpsSites != nil {
+	if req.URL.Scheme == "http" && f.ForcehttpsSites != nil && f.NoforcehttpsSites != nil {
 		for _, suffix := range f.ForcehttpsSites {
-			if strings.HasSuffix(req.Host, suffix) {
+			if strings.HasSuffix(req.Host, suffix) && !strings.HasPrefix(req.Referer(), "https:") {
 				if _, ok := f.NoforcehttpsSites[req.Host]; !ok {
 					url := strings.Replace(req.URL.String(), "http:", "https:", 1)
 					return &FilterArgs{
