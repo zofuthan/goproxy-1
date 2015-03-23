@@ -89,9 +89,9 @@ type CommonConfig struct {
 	CrlfSites         []string
 	NocrlfSites       []string
 	ForcehttpsSites   []string
-	NoforcehttpsSites []string
+	NoforcehttpsSites map[string]struct{}
 	FakehttpsSites    []string
-	NofakehttpsSites  []string
+	NofakehttpsSites  map[string]struct{}
 	WithGAESites      []string
 	WithPHPSites      []string
 	WithVPSSites      []string
@@ -310,9 +310,9 @@ func ReadConfigFile(filename string) (*CommonConfig, error) {
 	cc.CrlfSites = make([]string, 0)
 	cc.NocrlfSites = make([]string, 0)
 	cc.ForcehttpsSites = make([]string, 0)
-	cc.NoforcehttpsSites = make([]string, 0)
+	cc.NoforcehttpsSites = make(map[string]struct{}, 0)
 	cc.FakehttpsSites = make([]string, 0)
-	cc.NofakehttpsSites = make([]string, 0)
+	cc.NofakehttpsSites = make(map[string]struct{}, 0)
 	cc.WithGAESites = make([]string, 0)
 	cc.WithPHPSites = make([]string, 0)
 	cc.WithVPSSites = make([]string, 0)
@@ -336,11 +336,11 @@ func ReadConfigFile(filename string) (*CommonConfig, error) {
 			case "forcehttps":
 				cc.ForcehttpsSites = append(cc.ForcehttpsSites, pattern)
 			case "noforcehttps":
-				cc.NoforcehttpsSites = append(cc.NoforcehttpsSites, pattern)
+				cc.NoforcehttpsSites[pattern] = struct{}{}
 			case "fakehttps":
 				cc.FakehttpsSites = append(cc.FakehttpsSites, pattern)
 			case "nofakehttps":
-				cc.NofakehttpsSites = append(cc.NofakehttpsSites, pattern)
+				cc.NofakehttpsSites[pattern] = struct{}{}
 			case "withgae":
 				cc.WithGAESites = append(cc.WithGAESites, pattern)
 			case "withphp":

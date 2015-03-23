@@ -3,6 +3,7 @@ package httpproxy
 import (
 	"github.com/golang/glog"
 	"net/http"
+	"strings"
 )
 
 type AlwaysRawResponseFilter struct {
@@ -23,6 +24,27 @@ func (f *AlwaysRawResponseFilter) Filter(res *http.Response) (args *FilterArgs, 
 	return nil, nil
 }
 
-// type ForcehttpsRequestFilter struct {
-// 	*
-// }
+type ForcehttpsRequestFilter struct {
+	*MockRequestFilter
+	ForcehttpsSites   []string
+	NoforcehttpsSites map[string]struct{}
+}
+
+func (f *ForcehttpsRequestFilter) Filter(req *http.Request) (args *FilterArgs, err error) {
+	if f.ForcehttpsSites != nil && f.NoforcehttpsSites != nil {
+		for _, suffix := range f.ForcehttpsSites {
+			if strings.HasSuffix(req.Host, suffix) {
+				if _, ok := f.NoforcehttpsSites[req.Host]; !ok {
+					url := strings.Replace(req.URL.String(), "http:", "https:", 1)
+					return &FilterArgs{
+						"StatusCode": 302,
+						"Header": &http.Header{
+							"Location": []string{url},
+						},
+					}, nil
+				}
+			}
+		}
+	}
+	return nil, nil
+}

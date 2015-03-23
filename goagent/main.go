@@ -78,7 +78,13 @@ func main() {
 			Proxy:                 nil,
 		},
 		RequestFilters: []httpproxy.RequestFilter{
-			&httpproxy.StripRequestFilter{CA: ca},
+			&httpproxy.StripRequestFilter{
+				CA: ca,
+			},
+			&httpproxy.ForcehttpsRequestFilter{
+				ForcehttpsSites:   common.ForcehttpsSites,
+				NoforcehttpsSites: common.NoforcehttpsSites,
+			},
 			&GAERequestFilter{
 				AppIDs: common.GaeAppids,
 				Scheme: common.GaeMode,
