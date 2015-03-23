@@ -37,7 +37,7 @@ func (f *ForcehttpsRequestFilter) Filter(req *http.Request) (args *FilterArgs, e
 				if _, ok := f.NoforcehttpsSites[req.Host]; !ok {
 					url := strings.Replace(req.URL.String(), "http:", "https:", 1)
 					return &FilterArgs{
-						"StatusCode": 302,
+						"StatusCode": 301,
 						"Header": &http.Header{
 							"Location": []string{url},
 						},

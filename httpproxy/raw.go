@@ -19,12 +19,12 @@ func (f *RawResponseFilter) HandleResponse(h *Handler, args *FilterArgs, rw http
 			fmt.Fprintf(rw, "Error: %s\n", resError)
 			return resError
 		}
-		rw.WriteHeader(res.StatusCode)
 		for key, values := range res.Header {
 			for _, value := range values {
 				rw.Header().Add(key, value)
 			}
 		}
+		rw.WriteHeader(res.StatusCode)
 		io.Copy(rw, res.Body)
 	} else {
 		if resError != nil {

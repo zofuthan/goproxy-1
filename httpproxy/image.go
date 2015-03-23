@@ -31,7 +31,6 @@ func (f *ImageResponseFilter) HandleResponse(h *Handler, args *FilterArgs, rw ht
 		glog.Infof("ImageResponseFilter HandleResponse failed %s", err)
 		return err
 	}
-	rw.WriteHeader(200)
 	for key, values := range res.Header {
 		for _, value := range values {
 			if key == "Content-Type" {

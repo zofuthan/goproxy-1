@@ -25,11 +25,12 @@ func (f *MockRequestFilter) HandleRequest(h *Handler, args *FilterArgs, rw http.
 	}
 	resp := &http.Response{
 		StatusCode:    statusCode,
+		ProtoMajor:    1,
+		ProtoMinor:    1,
 		Header:        *header,
-		Body:          ioutil.NopCloser(bytes.NewBufferString(body)),
 		ContentLength: int64(len(body)),
+		Body:          ioutil.NopCloser(bytes.NewBufferString(body)),
 		Request:       req,
-		Close:         true,
 	}
 	glog.Infof("%s \"MOCK %s %s %s\" %d %s", req.RemoteAddr, req.Method, req.URL.String(), req.Proto, resp.StatusCode, resp.Header.Get("Content-Length"))
 	return resp, nil
