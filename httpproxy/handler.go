@@ -1,6 +1,7 @@
 package httpproxy
 
 import (
+	"fmt"
 	"github.com/golang/glog"
 	"net"
 	"net/http"
@@ -15,6 +16,54 @@ type Handler struct {
 }
 
 type FilterArgs map[string]interface{}
+
+func (f *FilterArgs) GetString(name string) (string, error) {
+	v, ok := (*f)[name]
+	if !ok {
+		return "", fmt.Errorf("FilterArgs(%#v) cannot GetString(%#v)", f, name)
+	}
+	s, ok := v.(string)
+	if !ok {
+		return "", fmt.Errorf("FilterArgs(%#v) cannot convert %#v to string", f, v)
+	}
+	return s, nil
+}
+
+func (f *FilterArgs) GetInt(name string) (int, error) {
+	v, ok := (*f)[name]
+	if !ok {
+		return 0, fmt.Errorf("FilterArgs(%#v) cannot GetInt(%#v)", f, name)
+	}
+	s, ok := v.(int)
+	if !ok {
+		return 0, fmt.Errorf("FilterArgs(%#v) cannot convert %#v to int", f, v)
+	}
+	return s, nil
+}
+
+func (f *FilterArgs) GetStringMap(name string) (map[string]string, error) {
+	v, ok := (*f)[name]
+	if !ok {
+		return nil, fmt.Errorf("FilterArgs(%#v) cannot GetStringMap(%#v)", f, name)
+	}
+	s, ok := v.(map[string]string)
+	if !ok {
+		return nil, fmt.Errorf("FilterArgs(%#v) cannot convert %#v to map[string]string", f, v)
+	}
+	return s, nil
+}
+
+func (f *FilterArgs) GetHeader(name string) (*http.Header, error) {
+	v, ok := (*f)[name]
+	if !ok {
+		return nil, fmt.Errorf("FilterArgs(%#v) cannot GetHeader(%#v)", f, name)
+	}
+	s, ok := v.(*http.Header)
+	if !ok {
+		return nil, fmt.Errorf("FilterArgs(%#v) cannot convert %#v to *http.Header", f, v)
+	}
+	return s, nil
+}
 
 type RequestFilter interface {
 	HandleRequest(*Handler, *FilterArgs, http.ResponseWriter, *http.Request) (*http.Response, error)
