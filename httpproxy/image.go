@@ -2,9 +2,11 @@ package httpproxy
 
 import (
 	"fmt"
+	"github.com/chai2010/webp"
 	"github.com/golang/glog"
 	"image"
-	"image/jpeg"
+	_ "image/gif"
+	_ "image/jpeg"
 	_ "image/png"
 	"io"
 	"net/http"
@@ -33,18 +35,23 @@ func (f *ImageResponseFilter) HandleResponse(h *Handler, args *FilterArgs, rw ht
 	}
 	for key, values := range res.Header {
 		for _, value := range values {
-			if key == "Content-Type" {
-				rw.Header().Set(key, "image/jpeg")
+			if key == "Content-Length" {
+				continue
+			} else if key == "Content-Type" {
+				rw.Header().Set(key, "image/webp")
 			} else {
 				rw.Header().Set(key, value)
 			}
 		}
 	}
 	rw.Header().Set("Connection", "close")
-	return jpeg.Encode(rw, img, &jpeg.Options{50})
+	return webp.Encode(rw, img, &webp.Options{Lossless: true})
 }
 
 func (f *ImageResponseFilter) Filter(res *http.Response) (args *FilterArgs, err error) {
+	// if !strings.Contains(res.Request.Header.Get("Accept"), "image/webp") {
+	// 	return nil, nil
+	// }
 	if strings.HasPrefix(res.Header.Get("Content-Type"), "image/") {
 		return &FilterArgs{}, nil
 	}

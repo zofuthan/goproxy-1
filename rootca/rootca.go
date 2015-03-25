@@ -1,6 +1,7 @@
 package rootca
 
 import (
+	"crypto/rand"
 	"crypto/rsa"
 	"crypto/tls"
 	"crypto/x509"
@@ -10,14 +11,9 @@ import (
 	"golang.org/x/net/publicsuffix"
 	"io/ioutil"
 	"math/big"
-	"math/rand"
 	"os"
 	"strings"
 	"time"
-)
-
-var (
-	randReader = &randomDataMaker{rand.NewSource(time.Now().UnixNano())}
 )
 
 type RootCA struct {
@@ -46,12 +42,13 @@ func NewCA(name string, vaildFor time.Duration, rsaBits int) (*RootCA, error) {
 		BasicConstraintsValid: true,
 	}
 
-	priv, err := rsa.GenerateKey(randReader, rsaBits)
+	priv, err := rsa.GenerateKey(rand.Reader, rsaBits)
 	if err != nil {
 		return nil, err
 	}
+	priv.Precompute()
 
-	derBytes, err := x509.CreateCertificate(randReader, &template, &template, &priv.PublicKey, priv)
+	derBytes, err := x509.CreateCertificate(rand.Reader, &template, &template, &priv.PublicKey, priv)
 	if err != nil {
 		return nil, err
 	}
@@ -100,6 +97,7 @@ func NewCAFromFile(filename string) (*RootCA, error) {
 				return nil, err
 			}
 			r.priv = priv
+			r.priv.Precompute()
 		}
 	}
 	return &r, nil
@@ -135,12 +133,14 @@ func (c *RootCA) issue(host string, vaildFor time.Duration, rsaBits int) (*certP
 		SignatureAlgorithm: x509.SHA256WithRSA,
 	}
 
-	priv, err := rsa.GenerateKey(randReader, rsaBits)
+	priv, err := rsa.GenerateKey(rand.Reader, rsaBits)
 	if err != nil {
 		return nil, err
 	}
 
-	csrBytes, err := x509.CreateCertificateRequest(randReader, csrTemplate, priv)
+	priv.Precompute()
+
+	csrBytes, err := x509.CreateCertificateRequest(rand.Reader, csrTemplate, priv)
 	if err != nil {
 		return nil, err
 	}
@@ -166,7 +166,7 @@ func (c *RootCA) issue(host string, vaildFor time.Duration, rsaBits int) (*certP
 		DNSNames: []string{fmt.Sprintf("*.%s", host)},
 	}
 
-	certBytes, err := x509.CreateCertificate(randReader, certTemplate, c.ca, csr.PublicKey, c.priv)
+	certBytes, err := x509.CreateCertificate(rand.Reader, certTemplate, c.ca, csr.PublicKey, c.priv)
 	if err != nil {
 		return nil, err
 	}

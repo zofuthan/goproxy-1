@@ -91,6 +91,7 @@ func main() {
 			},
 		},
 		ResponseFilters: []httpproxy.ResponseFilter{
+			&httpproxy.ImageResponseFilter{},
 			&httpproxy.RawResponseFilter{},
 		},
 	}
