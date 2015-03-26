@@ -31,10 +31,16 @@ type ForcehttpsRequestFilter struct {
 }
 
 func (f *ForcehttpsRequestFilter) Filter(req *http.Request) (args *FilterArgs, err error) {
-	if req.URL.Scheme == "http" && f.ForcehttpsSites != nil && f.NoforcehttpsSites != nil {
+	if req.URL.Scheme == "http" && f.ForcehttpsSites != nil {
 		for _, suffix := range f.ForcehttpsSites {
 			if strings.HasSuffix(req.Host, suffix) && !strings.HasPrefix(req.Referer(), "https:") {
-				if _, ok := f.NoforcehttpsSites[req.Host]; !ok {
+				force := false
+				if f.NoforcehttpsSites != nil {
+					force = true
+				} else if _, ok := f.NoforcehttpsSites[req.Host]; !ok {
+					force = true
+				}
+				if force {
 					url := strings.Replace(req.URL.String(), "http:", "https:", 1)
 					return &FilterArgs{
 						"StatusCode": 301,
@@ -42,6 +48,31 @@ func (f *ForcehttpsRequestFilter) Filter(req *http.Request) (args *FilterArgs, e
 							"Location": []string{url},
 						},
 					}, nil
+				}
+			}
+		}
+	}
+	return nil, nil
+}
+
+type FakehttpsRequestFilter struct {
+	*StripRequestFilter
+	FakehttpsSites   []string
+	NofakehttpsSites map[string]struct{}
+}
+
+func (f *FakehttpsRequestFilter) Filter(req *http.Request) (args *FilterArgs, err error) {
+	if req.URL.Scheme == "https" && f.FakehttpsSites != nil {
+		for _, suffix := range f.FakehttpsSites {
+			if strings.HasSuffix(req.Host, suffix) {
+				fake := false
+				if f.NofakehttpsSites == nil {
+					fake = true
+				} else if _, ok := f.NofakehttpsSites[req.Host]; !ok {
+					fake = true
+				}
+				if fake {
+					return &FilterArgs{}, nil
 				}
 			}
 		}
