@@ -46,7 +46,6 @@ func NewCA(name string, vaildFor time.Duration, rsaBits int) (*RootCA, error) {
 	if err != nil {
 		return nil, err
 	}
-	priv.Precompute()
 
 	derBytes, err := x509.CreateCertificate(rand.Reader, &template, &template, &priv.PublicKey, priv)
 	if err != nil {
@@ -97,7 +96,6 @@ func NewCAFromFile(filename string) (*RootCA, error) {
 				return nil, err
 			}
 			r.priv = priv
-			r.priv.Precompute()
 		}
 	}
 	return &r, nil
@@ -137,8 +135,6 @@ func (c *RootCA) issue(host string, vaildFor time.Duration, rsaBits int) (*certP
 	if err != nil {
 		return nil, err
 	}
-
-	priv.Precompute()
 
 	csrBytes, err := x509.CreateCertificateRequest(rand.Reader, csrTemplate, priv)
 	if err != nil {
