@@ -3,8 +3,8 @@ package main
 import (
 	"flag"
 	"github.com/golang/glog"
+	"github.com/phuslu/goproxy/certutil"
 	"github.com/phuslu/goproxy/httpproxy"
-	"github.com/phuslu/goproxy/rootca"
 	"net"
 	"net/http"
 	"os"
@@ -12,17 +12,17 @@ import (
 	"time"
 )
 
-func getCA() (*rootca.RootCA, error) {
+func getCA() (certutil.CA, error) {
 	filename := "CA.crt"
 	_, err := os.Stat(filename)
-	var ca *rootca.RootCA
+	var ca certutil.CA
 	if err == nil {
-		ca, err = rootca.NewCAFromFile(filename)
+		ca, err = certutil.NewStdCAFromFile(filename)
 		if err != nil {
 			return nil, err
 		}
 	} else {
-		ca, err = rootca.NewCA("GoAgent", 3*365*24*time.Hour, 2048)
+		ca, err = certutil.NewStdCA("GoAgent", 3*365*24*time.Hour, 2048)
 		if err != nil {
 			return nil, err
 		}
