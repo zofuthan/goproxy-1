@@ -4,7 +4,6 @@ import (
 	"bufio"
 	"bytes"
 	"compress/gzip"
-	"fmt"
 	"github.com/golang/glog"
 	"github.com/phuslu/goproxy/httpproxy"
 	"io"

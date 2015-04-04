@@ -2,55 +2,42 @@ package plugins
 
 import (
 	"fmt"
+	"github.com/phuslu/goproxy/httpproxy"
 	"net/http"
 )
 
-type PluginArgs map[string]interface{}
-
-func (f *PluginArgs) GetString(name string) (string, error) {
-	v, ok := (*f)[name]
-	if !ok {
-		return "", fmt.Errorf("PluginArgs(%#v) cannot GetString(%#v)", f, name)
-	}
-	s, ok := v.(string)
-	if !ok {
-		return "", fmt.Errorf("PluginArgs(%#v) cannot convert %#v to string", f, v)
-	}
-	return s, nil
+type Plugin interface {
+	PluginName() string
+	Fetch(*httpproxy.Context, *http.Request) (*http.Response, error)
 }
 
-func (f *PluginArgs) GetInt(name string) (int, error) {
-	v, ok := (*f)[name]
-	if !ok {
-		return 0, fmt.Errorf("PluginArgs(%#v) cannot GetInt(%#v)", f, name)
-	}
-	s, ok := v.(int)
-	if !ok {
-		return 0, fmt.Errorf("PluginArgs(%#v) cannot convert %#v to int", f, v)
-	}
-	return s, nil
+type RegisteredPlugin struct {
+	New func() (Plugin, error)
 }
 
-func (f *PluginArgs) GetStringMap(name string) (map[string]string, error) {
-	v, ok := (*f)[name]
-	if !ok {
-		return nil, fmt.Errorf("PluginArgs(%#v) cannot GetStringMap(%#v)", f, name)
-	}
-	s, ok := v.(map[string]string)
-	if !ok {
-		return nil, fmt.Errorf("PluginArgs(%#v) cannot convert %#v to map[string]string", f, v)
-	}
-	return s, nil
+var (
+	plugins map[string]*RegisteredPlugin
+)
+
+func init() {
+	plugins = make(map[string]*RegisteredPlugin)
 }
 
-func (f *PluginArgs) GetHeader(name string) (*http.Header, error) {
-	v, ok := (*f)[name]
-	if !ok {
-		return nil, fmt.Errorf("PluginArgs(%#v) cannot GetHeader(%#v)", f, name)
+// Register a Plugin
+func Register(name string, registeredPlugin *RegisteredPlugin) error {
+	if _, exists := plugins[name]; exists {
+		return fmt.Errorf("Name already registered %s", name)
 	}
-	s, ok := v.(*http.Header)
-	if !ok {
-		return nil, fmt.Errorf("PluginArgs(%#v) cannot convert %#v to *http.Header", f, v)
+
+	plugins[name] = registeredPlugin
+	return nil
+}
+
+// NewPlugin creates a new Plugin of type "name"
+func NewPlugin(name string) (Plugin, error) {
+	plugin, exists := plugins[name]
+	if !exists {
+		return nil, fmt.Errorf("hosts: Unknown plugin %q", name)
 	}
-	return s, nil
+	return plugin.New()
 }

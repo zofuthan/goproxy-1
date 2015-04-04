@@ -1,7 +1,6 @@
 package httpproxy
 
 import (
-	"fmt"
 	"github.com/golang/glog"
 	"net"
 	"net/http"
@@ -16,13 +15,13 @@ type Handler struct {
 }
 
 type RequestFilter interface {
-	HandleRequest(*Handler, *FilterArgs, http.ResponseWriter, *http.Request) (*http.Response, error)
-	Filter(req *http.Request) (args *FilterArgs, err error)
+	HandleRequest(*Context, http.ResponseWriter, *http.Request) (*http.Response, error)
+	Filter(req *http.Request) (ctx *Context, err error)
 }
 
 type ResponseFilter interface {
-	HandleResponse(*Handler, *FilterArgs, http.ResponseWriter, *http.Response, error) error
-	Filter(res *http.Response) (args *FilterArgs, err error)
+	HandleResponse(*Context, http.ResponseWriter, *http.Response, error) error
+	Filter(res *http.Response) (ctx *Context, err error)
 }
 
 func (h Handler) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
@@ -40,12 +39,12 @@ func (h Handler) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 		}
 	}
 	for i, reqfilter := range h.RequestFilters {
-		args, err := reqfilter.Filter(req)
+		ctx, err := reqfilter.Filter(req)
 		if err != nil {
 			glog.Infof("ServeHTTP RequestFilter error: %v", err)
 		}
-		if args != nil || i == len(h.RequestFilters)-1 {
-			res, err := reqfilter.HandleRequest(&h, args, rw, req)
+		if ctx != nil || i == len(h.RequestFilters)-1 {
+			res, err := reqfilter.HandleRequest(ctx, rw, req)
 			if err != nil {
 				glog.Infof("ServeHTTP HandleRequest error: %v", err)
 			}
@@ -57,12 +56,12 @@ func (h Handler) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 				if resfilter == nil {
 					break
 				}
-				args, err := resfilter.Filter(res)
+				ctx, err := resfilter.Filter(res)
 				if err != nil {
 					glog.Infof("ServeHTTP ResponseFilter error: %v", err)
 				}
-				if args != nil || j == len(h.ResponseFilters)-1 {
-					err := resfilter.HandleResponse(&h, args, rw, res, err)
+				if ctx != nil || j == len(h.ResponseFilters)-1 {
+					err := resfilter.HandleResponse(ctx, rw, res, err)
 					if err != nil {
 						glog.Infof("ServeHTTP HandleResponse error: %v", err)
 					}
