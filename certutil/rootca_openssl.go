@@ -106,7 +106,7 @@ func (ca *OpenCA) Dump(filename string) error {
 }
 
 func (ca *OpenCA) issue(host string, vaildFor time.Duration, rsaBits int) (*openCert, error) {
-	host, err := getCommonName(host)
+	host, err := GetCommonName(host)
 	if err != nil {
 		return nil, err
 	}
@@ -183,7 +183,7 @@ func (ca *OpenCA) IssueFile(host string, vaildFor time.Duration, rsaBits int) (s
 		return "", err
 	}
 
-	commonname, err := getCommonName(host)
+	commonname, err := GetCommonName(host)
 	if err != nil {
 		return "", err
 	}

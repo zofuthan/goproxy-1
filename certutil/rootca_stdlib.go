@@ -100,7 +100,7 @@ func (r *StdCA) Dump(filename string) error {
 }
 
 func (c *StdCA) issue(host string, vaildFor time.Duration, rsaBits int) (*certPem, error) {
-	host, err := getCommonName(host)
+	host, err := GetCommonName(host)
 	if err != nil {
 		return nil, err
 	}
@@ -175,7 +175,7 @@ func (c *StdCA) IssueFile(host string, vaildFor time.Duration, rsaBits int) (str
 		return "", err
 	}
 
-	commonname, err := getCommonName(host)
+	commonname, err := GetCommonName(host)
 	if err != nil {
 		return "", err
 	}

@@ -14,7 +14,7 @@ type CA interface {
 	IssueFile(host string, vaildFor time.Duration, rsaBits int) (string, error)
 }
 
-func getCommonName(domain string) (host string, err error) {
+func GetCommonName(domain string) (host string, err error) {
 	eTLD_1, err := publicsuffix.EffectiveTLDPlusOne(domain)
 	if err != nil {
 		return

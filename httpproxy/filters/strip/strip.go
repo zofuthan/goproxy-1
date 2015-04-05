@@ -3,6 +3,7 @@ package strip
 import (
 	"crypto/tls"
 	"fmt"
+	"github.com/dropbox/godropbox/container/lrucache"
 	"github.com/golang/glog"
 	"github.com/phuslu/goproxy/certutil"
 	"github.com/phuslu/goproxy/httpproxy/filters"
@@ -11,6 +12,7 @@ import (
 	"net"
 	"net/http"
 	"os"
+	"sync"
 	"time"
 )
 
@@ -25,19 +27,21 @@ const (
 )
 
 var (
-	ca certutil.CA
+	ca      certutil.CA
+	caCache *lrucache.LRUCache
+	muCache sync.Mutex
 )
 
 func init() {
 	var err error
 
 	if _, err = os.Stat(CAFilename); err == nil {
-		ca, err = certutil.NewStdCAFromFile(CAFilename)
+		ca, err = certutil.NewOpenCAFromFile(CAFilename)
 		if err != nil {
 			panic(err)
 		}
 	} else {
-		ca, err = certutil.NewStdCA(CAName, CAExpires, 2048)
+		ca, err = certutil.NewOpenCA(CAName, CAExpires, 2048)
 		if err != nil {
 			panic(err)
 		}
@@ -45,6 +49,8 @@ func init() {
 			panic(err)
 		}
 	}
+
+	caCache = lrucache.New(512)
 
 	filters.Register("strip", &filters.RegisteredFilter{
 		New: NewFilter,
@@ -57,6 +63,28 @@ func NewFilter() (filters.Filter, error) {
 
 func (f *Filter) FilterName() string {
 	return "strip"
+}
+
+func issue(host string) (*tls.Certificate, error) {
+	name, err := certutil.GetCommonName(host)
+	if err != nil {
+		return nil, err
+	}
+
+	var cert interface{}
+	var ok bool
+	if cert, ok = caCache.Get(name); !ok {
+		muCache.Lock()
+		defer muCache.Unlock()
+		if cert, ok = caCache.Get(name); !ok {
+			cert, err = ca.Issue(name, 3*365*24*time.Hour, 2048)
+			if err != nil {
+				return nil, err
+			}
+			caCache.Set(name, cert)
+		}
+	}
+	return cert.(*tls.Certificate), nil
 }
 
 func (f *Filter) Request(ctx *filters.Context, req *http.Request) (*filters.Context, *http.Request, error) {
@@ -81,7 +109,7 @@ func (f *Filter) Request(ctx *filters.Context, req *http.Request) (*filters.Cont
 
 	glog.Infof("%s \"STRIP %s %s %s\" - -", req.RemoteAddr, req.Method, req.Host, req.Proto)
 
-	cert, err := ca.Issue(req.Host, 3*365*24*time.Hour, 2048)
+	cert, err := issue(req.Host)
 	if err != nil {
 		return ctx, nil, fmt.Errorf("tls.LoadX509KeyPair failed: %s", err)
 	}
