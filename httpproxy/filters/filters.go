@@ -2,13 +2,26 @@ package filters
 
 import (
 	"fmt"
-	"github.com/phuslu/goproxy/context"
 	"net/http"
 )
 
 type Filter interface {
 	FilterName() string
-	Fetch(*context.Context, *http.Request) (*http.Response, error)
+}
+
+type RequestFilter interface {
+	Filter
+	Request(*Context, *http.Request) (*Context, *http.Request, error)
+}
+
+type FetchFilter interface {
+	Filter
+	Fetch(*Context, *http.Request) (*Context, *http.Response, error)
+}
+
+type ResponseFilter interface {
+	Filter
+	Response(*Context, *http.Response) (*Context, *http.Response, error)
 }
 
 type RegisteredFilter struct {
@@ -37,7 +50,7 @@ func Register(name string, registeredFilter *RegisteredFilter) error {
 func NewFilter(name string) (Filter, error) {
 	filter, exists := filters[name]
 	if !exists {
-		return nil, fmt.Errorf("hosts: Unknown filter %q", name)
+		return nil, fmt.Errorf("filters: Unknown filter %q", name)
 	}
 	return filter.New()
 }

@@ -1,25 +1,41 @@
-package httpproxy
+package mock
 
 import (
 	"bytes"
 	"github.com/golang/glog"
+	"github.com/phuslu/goproxy/httpproxy/filters"
 	"io/ioutil"
 	"net/http"
 )
 
-type MockRequestFilter struct {
+type Filter struct {
+	filters.FetchFilter
 }
 
-func (f *MockRequestFilter) HandleRequest(h *Handler, args *FilterArgs, rw http.ResponseWriter, req *http.Request) (*http.Response, error) {
-	statusCode, err := args.GetInt("StatusCode")
+func init() {
+	filters.Register("mock", &filters.RegisteredFilter{
+		New: NewFilter,
+	})
+}
+
+func NewFilter() (filters.Filter, error) {
+	return &Filter{}, nil
+}
+
+func (f *Filter) FilterName() string {
+	return "mock"
+}
+
+func (f *Filter) Fetch(ctx *filters.Context, req *http.Request) (*http.Response, error) {
+	statusCode, err := ctx.GetInt("StatusCode")
 	if err != nil {
 		return nil, err
 	}
-	header, err := args.GetHeader("Header")
+	header, err := ctx.GetHeader("Header")
 	if err != nil {
 		return nil, err
 	}
-	body, err := args.GetString("Body")
+	body, err := ctx.GetString("Body")
 	if err != nil {
 		body = ""
 	}

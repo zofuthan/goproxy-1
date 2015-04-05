@@ -1,7 +1,8 @@
-package context
+package filters
 
 import (
 	"fmt"
+	"net"
 	"net/http"
 )
 
@@ -63,14 +64,41 @@ func (f *Context) GetHeader(name string) (*http.Header, error) {
 	return s, nil
 }
 
-func (f *Context) GetResponseWriter(name string) (http.ResponseWriter, error) {
+func (f *Context) GetResponseWriter() http.ResponseWriter {
+	name := "__responsewriter__"
 	v, ok := (*f)[name]
 	if !ok {
-		return nil, fmt.Errorf("Context(%#v) cannot GetHeader(%#v)", f, name)
+		panic(fmt.Errorf("Context(%#v) cannot GetResponseWriter(%#v)", f, name))
 	}
-	s, ok := v.(http.ResponseWriter)
+	rw, ok := v.(http.ResponseWriter)
 	if !ok {
-		return nil, fmt.Errorf("Context(%#v) cannot convert %#v to *http.Header", f, v)
+		panic(fmt.Errorf("Context(%#v) cannot convert %#v to http.ResponseWriter", f, v))
 	}
-	return s, nil
+	return rw
+}
+
+func (f *Context) GetTransport() *http.Transport {
+	name := "__transport__"
+	v, ok := (*f)[name]
+	if !ok {
+		panic(fmt.Errorf("Context(%#v) cannot GetTransport(%#v)", f, name))
+	}
+	tr, ok := v.(*http.Transport)
+	if !ok {
+		panic(fmt.Errorf("Context(%#v) cannot convert %#v to *http.Transport", f, v))
+	}
+	return tr
+}
+
+func (f *Context) GetListener() net.Listener {
+	name := "__listener__"
+	v, ok := (*f)[name]
+	if !ok {
+		panic(fmt.Errorf("Context(%#v) cannot GetListener(%#v)", f, name))
+	}
+	ln, ok := v.(net.Listener)
+	if !ok {
+		panic(fmt.Errorf("Context(%#v) cannot convert %#v to net.Listener", f, v))
+	}
+	return ln
 }

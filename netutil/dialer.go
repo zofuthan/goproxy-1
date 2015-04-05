@@ -1,4 +1,4 @@
-package httpproxy
+package netutil
 
 import (
 	"crypto/tls"

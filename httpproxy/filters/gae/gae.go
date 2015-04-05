@@ -1,11 +1,12 @@
-package main
+package gae
 
 import (
 	"bufio"
 	"bytes"
 	"compress/gzip"
+	"fmt"
 	"github.com/golang/glog"
-	"github.com/phuslu/goproxy/httpproxy"
+	"github.com/phuslu/goproxy/httpproxy/filters"
 	"io"
 	"io/ioutil"
 	"net/http"
@@ -29,16 +30,16 @@ var reqWriteExcludeHeader = map[string]bool{
 	"Cache-Control":       true,
 }
 
-type GAERequestFilter struct {
+type Filter struct {
 	AppIDs []string
 	Scheme string
 }
 
-func (g *GAERequestFilter) pickAppID() string {
-	return g.AppIDs[0]
+func (f *Filter) pickAppID() string {
+	return f.AppIDs[0]
 }
 
-func (g *GAERequestFilter) encodeRequest(req *http.Request) (*http.Request, error) {
+func (f *Filter) encodeRequest(req *http.Request) (*http.Request, error) {
 	var err error
 	var b bytes.Buffer
 	var w io.Writer
@@ -80,8 +81,8 @@ func (g *GAERequestFilter) encodeRequest(req *http.Request) (*http.Request, erro
 	}
 
 	u := &url.URL{
-		Scheme: g.Scheme,
-		Host:   fmt.Sprintf("%s.%s", g.pickAppID(), appspotDomain),
+		Scheme: f.Scheme,
+		Host:   fmt.Sprintf("%s.%s", f.pickAppID(), appspotDomain),
 		Path:   goagentPath,
 	}
 	if gw != nil {
@@ -106,7 +107,7 @@ func (g *GAERequestFilter) encodeRequest(req *http.Request) (*http.Request, erro
 	return req1, nil
 }
 
-func (g *GAERequestFilter) decodeResponse(res *http.Response) (*http.Response, error) {
+func (f *Filter) decodeResponse(res *http.Response) (*http.Response, error) {
 	if res.StatusCode != 200 {
 		return res, nil
 	}
@@ -124,23 +125,18 @@ func (g *GAERequestFilter) decodeResponse(res *http.Response) (*http.Response, e
 	return resp, err
 }
 
-func (g *GAERequestFilter) HandleRequest(h *httpproxy.Handler, args *httpproxy.FilterArgs, rw http.ResponseWriter, req *http.Request) (*http.Response, error) {
-	req1, err := g.encodeRequest(req)
+func (f *Filter) Fetch(ctx *filters.Context, req *http.Request) (*filters.Context, *http.Response, error) {
+	req1, err := f.encodeRequest(req)
 	if err != nil {
-		rw.WriteHeader(502)
-		fmt.Fprintf(rw, "Error: %s\n", err)
-		return nil, err
+		return ctx, nil, fmt.Errorf("GAE encodeRequest: %s", err.Error())
 	}
 	req1.Header = req.Header
-	res, err := h.Transport.RoundTrip(req1)
+	res, err := ctx.GetTransport().RoundTrip(req1)
 	if err != nil {
-		return nil, err
+		return ctx, nil, err
 	} else {
 		glog.Infof("%s \"GAE %s %s %s\" %d %s", req.RemoteAddr, req.Method, req.URL.String(), req.Proto, res.StatusCode, res.Header.Get("Content-Length"))
 	}
-	return g.decodeResponse(res)
-}
-
-func (g *GAERequestFilter) Filter(req *http.Request) (args *httpproxy.FilterArgs, err error) {
-	return nil, nil
+	resp, err := f.decodeResponse(res)
+	return ctx, resp, err
 }
