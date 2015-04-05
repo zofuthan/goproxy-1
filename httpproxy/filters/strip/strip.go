@@ -60,6 +60,10 @@ func (f *Filter) FilterName() string {
 }
 
 func (f *Filter) Request(ctx *filters.Context, req *http.Request) (*filters.Context, *http.Request, error) {
+	if req.Method != "CONNECT" {
+		return ctx, req, nil
+	}
+
 	hijacker, ok := ctx.GetResponseWriter().(http.Hijacker)
 	if !ok {
 		return ctx, nil, fmt.Errorf("%#v does not implments Hijacker", ctx.GetResponseWriter())
@@ -84,7 +88,8 @@ func (f *Filter) Request(ctx *filters.Context, req *http.Request) (*filters.Cont
 
 	tlsConfig := &tls.Config{
 		Certificates: []tls.Certificate{*cert},
-		ClientAuth:   tls.VerifyClientCertIfGiven}
+		ClientAuth:   tls.VerifyClientCertIfGiven,
+	}
 	tlsConn := tls.Server(conn, tlsConfig)
 	if err := tlsConn.Handshake(); err != nil {
 		return ctx, nil, fmt.Errorf("tlsConn.Handshake error: %s", err)
@@ -92,6 +97,7 @@ func (f *Filter) Request(ctx *filters.Context, req *http.Request) (*filters.Cont
 
 	if pln, ok := ctx.GetListener().(netutil.PushListener); ok {
 		pln.Push(tlsConn, nil)
+		// glog.Infof("%#v Push %#v\n", pln, tlsConn)
 		return ctx, nil, nil
 	}
 

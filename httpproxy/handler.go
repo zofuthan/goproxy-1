@@ -36,9 +36,9 @@ func (h Handler) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 	// Prepare filter.Context
 	var err error
 	ctx := &filters.Context{
-		"__listener__":  h.Listener,
-		"__transport__": h.Transport,
-		"__rw__":        rw,
+		"__listener__":       h.Listener,
+		"__transport__":      h.Transport,
+		"__responsewriter__": rw,
 	}
 
 	// Filter Request
