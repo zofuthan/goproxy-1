@@ -14,9 +14,9 @@ type RequestFilter interface {
 	Request(*Context, *http.Request) (*Context, *http.Request, error)
 }
 
-type FetchFilter interface {
+type RoundTripFilter interface {
 	Filter
-	Fetch(*Context, *http.Request) (*Context, *http.Response, error)
+	RoundTrip(*Context, *http.Request) (*Context, *http.Response, error)
 }
 
 type ResponseFilter interface {

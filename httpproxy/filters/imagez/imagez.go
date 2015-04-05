@@ -14,7 +14,7 @@ import (
 )
 
 type Filter struct {
-	filters.FetchFilter
+	filters.RoundTripFilter
 	UnderlayFilter string
 }
 
@@ -34,17 +34,17 @@ func (p *Filter) FilterName() string {
 	return "imagez"
 }
 
-func (p *Filter) Fetch(ctx *filters.Context, req *http.Request) (*filters.Context, *http.Response, error) {
+func (p *Filter) RoundTrip(ctx *filters.Context, req *http.Request) (*filters.Context, *http.Response, error) {
 	f1, err := filters.NewFilter(p.UnderlayFilter)
 	if err != nil {
 		return ctx, nil, err
 	}
-	f2, ok := f1.(filters.FetchFilter)
+	f2, ok := f1.(filters.RoundTripFilter)
 	if !ok {
-		return ctx, nil, fmt.Errorf("%#v was not a filters.FetchFilter", f1)
+		return ctx, nil, fmt.Errorf("%#v was not a filters.RoundTripFilter", f1)
 	}
 
-	ctx, resp, err := f2.Fetch(ctx, req)
+	ctx, resp, err := f2.RoundTrip(ctx, req)
 	if err != nil {
 		return ctx, nil, err
 	}

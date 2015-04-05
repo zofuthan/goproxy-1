@@ -68,8 +68,8 @@ func main() {
 		RequestFilters: []filters.RequestFilter{
 			stripFiler.(filters.RequestFilter),
 		},
-		FetchFilters: []filters.FetchFilter{
-			directFilter.(filters.FetchFilter),
+		RoundTripFilters: []filters.RoundTripFilter{
+			directFilter.(filters.RoundTripFilter),
 		},
 		ResponseFilters: []filters.ResponseFilter{},
 	}

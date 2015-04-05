@@ -9,7 +9,7 @@ import (
 )
 
 type Filter struct {
-	filters.FetchFilter
+	filters.RoundTripFilter
 }
 
 func init() {
@@ -26,7 +26,7 @@ func (f *Filter) FilterName() string {
 	return "mock"
 }
 
-func (f *Filter) Fetch(ctx *filters.Context, req *http.Request) (*http.Response, error) {
+func (f *Filter) RoundTrip(ctx *filters.Context, req *http.Request) (*http.Response, error) {
 	statusCode, err := ctx.GetInt("StatusCode")
 	if err != nil {
 		return nil, err

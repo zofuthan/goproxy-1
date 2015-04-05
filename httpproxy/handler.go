@@ -10,11 +10,11 @@ import (
 
 type Handler struct {
 	http.Handler
-	Listener        net.Listener
-	Transport       *http.Transport
-	RequestFilters  []filters.RequestFilter
-	FetchFilters    []filters.FetchFilter
-	ResponseFilters []filters.ResponseFilter
+	Listener         net.Listener
+	Transport        *http.Transport
+	RequestFilters   []filters.RequestFilter
+	RoundTripFilters []filters.RoundTripFilter
+	ResponseFilters  []filters.ResponseFilter
 }
 
 func (h Handler) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
@@ -55,8 +55,8 @@ func (h Handler) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 
 	// Filter Request -> Response
 	var resp *http.Response
-	for _, f := range h.FetchFilters {
-		ctx, resp, err = f.Fetch(ctx, req)
+	for _, f := range h.RoundTripFilters {
+		ctx, resp, err = f.RoundTrip(ctx, req)
 		if err != nil {
 			glog.Infof("ServeHTTP %#v error: %v", f, err)
 			return

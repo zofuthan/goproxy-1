@@ -12,7 +12,7 @@ import (
 )
 
 type Filter struct {
-	filters.FetchFilter
+	filters.RoundTripFilter
 	transport *http.Transport
 }
 
@@ -41,11 +41,11 @@ func (p *Filter) FilterName() string {
 	return "direct"
 }
 
-func (p *Filter) Fetch(ctx *filters.Context, req *http.Request) (*filters.Context, *http.Response, error) {
+func (p *Filter) RoundTrip(ctx *filters.Context, req *http.Request) (*filters.Context, *http.Response, error) {
 	if req.Method != "CONNECT" {
 		req1, err := http.NewRequest(req.Method, req.URL.String(), req.Body)
 		if err != nil {
-			return ctx, nil, fmt.Errorf("DIRECT Fetch %#v error: %#v", req, err)
+			return ctx, nil, fmt.Errorf("DIRECT RoundTrip %#v error: %#v", req, err)
 		}
 		req1.Header = req.Header
 		res, err := p.transport.RoundTrip(req1)

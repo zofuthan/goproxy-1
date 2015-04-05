@@ -125,7 +125,7 @@ func (f *Filter) decodeResponse(res *http.Response) (*http.Response, error) {
 	return resp, err
 }
 
-func (f *Filter) Fetch(ctx *filters.Context, req *http.Request) (*filters.Context, *http.Response, error) {
+func (f *Filter) RoundTrip(ctx *filters.Context, req *http.Request) (*filters.Context, *http.Response, error) {
 	req1, err := f.encodeRequest(req)
 	if err != nil {
 		return ctx, nil, fmt.Errorf("GAE encodeRequest: %s", err.Error())
