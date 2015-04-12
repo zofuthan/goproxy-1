@@ -1,6 +1,7 @@
 package netutil
 
 import (
+	"github.com/codahale/chacha20"
 	"github.com/golang/glog"
 	"net"
 	"time"
@@ -73,4 +74,31 @@ func (l listener) Addr() net.Addr {
 
 func (l listener) Push(conn net.Conn, err error) {
 	l.ch <- listenerAcceptTuple{conn, err}
+}
+
+type cipherListener struct {
+	listener
+	key []byte
+}
+
+func (l cipherListener) Accept() (net.Conn, error) {
+	t := <-l.ch
+	if t.e != nil {
+		return nil, t.e
+	}
+
+	config := &CipherConfig{
+		Key:             l.key,
+		NonceSize:       chacha20.NonceSize,
+		NewCipherStream: chacha20.New,
+	}
+
+	conn := CipherServer(t.c, config)
+
+	err := conn.Handshake()
+	if err != nil {
+		return nil, err
+	}
+
+	return conn, nil
 }
