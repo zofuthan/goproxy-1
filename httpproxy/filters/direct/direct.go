@@ -26,8 +26,8 @@ func NewFilter() (filters.Filter, error) {
 	return &Filter{
 		transport: &http.Transport{
 			Dial: (&net.Dialer{
-				Timeout:   30 * time.Second,
-				KeepAlive: 30 * time.Second,
+				Timeout:   10 * time.Second,
+				KeepAlive: 180 * time.Second,
 			}).Dial,
 			TLSClientConfig: &tls.Config{
 				InsecureSkipVerify: false,

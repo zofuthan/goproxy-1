@@ -6,7 +6,7 @@ import (
 	"github.com/phuslu/goproxy/httpproxy"
 	"github.com/phuslu/goproxy/httpproxy/filters"
 	_ "github.com/phuslu/goproxy/httpproxy/filters/direct"
-	_ "github.com/phuslu/goproxy/httpproxy/filters/imagez"
+	// _ "github.com/phuslu/goproxy/httpproxy/filters/imagez"
 	_ "github.com/phuslu/goproxy/httpproxy/filters/mock"
 	_ "github.com/phuslu/goproxy/httpproxy/filters/strip"
 	"github.com/phuslu/goproxy/netutil"

@@ -11,7 +11,6 @@ import (
 type Handler struct {
 	http.Handler
 	Listener         net.Listener
-	Transport        *http.Transport
 	RequestFilters   []filters.RequestFilter
 	RoundTripFilters []filters.RoundTripFilter
 	ResponseFilters  []filters.ResponseFilter
@@ -37,7 +36,6 @@ func (h Handler) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 	var err error
 	ctx := &filters.Context{
 		"__listener__":       h.Listener,
-		"__transport__":      h.Transport,
 		"__responsewriter__": rw,
 	}
 
@@ -69,7 +67,6 @@ func (h Handler) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 
 	// Filter Response
 	for _, f := range h.ResponseFilters {
-		ctx, resp, err = f.Response(ctx, resp)
 		if err != nil {
 			glog.Infof("ServeHTTP %#v error: %v", f, err)
 			return
@@ -77,6 +74,10 @@ func (h Handler) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 		if resp == nil {
 			return
 		}
+	}
+
+	if resp == nil {
+		return
 	}
 
 	for key, values := range resp.Header {
