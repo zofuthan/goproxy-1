@@ -2,8 +2,10 @@ package imagez
 
 import (
 	"bytes"
+	"flag"
 	"fmt"
 	"github.com/chai2010/webp"
+	"github.com/ginuerzh/weedo"
 	"github.com/golang/glog"
 	"github.com/phuslu/goproxy/httpproxy/filters"
 	"image"
@@ -13,12 +15,19 @@ import (
 	"net/http"
 )
 
+var (
+	defaultWeedClient *weedo.Client = nil
+)
+
 type Filter struct {
-	filters.RoundTripFilter
 	UnderlayFilter string
+	WeedClient     *weedo.Client
 }
 
 func init() {
+	weedMaster := *flag.String("weedmaster", "localhost:9333", "weed master address")
+	defaultWeedClient = weedo.NewClient(weedMaster)
+
 	filters.Register("imagez", &filters.RegisteredFilter{
 		New: NewFilter,
 	})
@@ -27,6 +36,7 @@ func init() {
 func NewFilter() (filters.Filter, error) {
 	return &Filter{
 		UnderlayFilter: "direct",
+		WeedClient:     defaultWeedClient,
 	}, nil
 }
 
@@ -35,6 +45,8 @@ func (p *Filter) FilterName() string {
 }
 
 func (p *Filter) RoundTrip(ctx *filters.Context, req *http.Request) (*filters.Context, *http.Response, error) {
+	// p.WeedClient.GetUrl(fid)
+
 	f1, err := filters.NewFilter(p.UnderlayFilter)
 	if err != nil {
 		return ctx, nil, err
@@ -49,6 +61,10 @@ func (p *Filter) RoundTrip(ctx *filters.Context, req *http.Request) (*filters.Co
 		return ctx, nil, err
 	}
 
+	return ctx, resp, nil
+}
+
+func (p *Filter) Response(ctx *filters.Context, resp *http.Response) (*filters.Context, *http.Response, error) {
 	switch resp.Header.Get("Content-Type") {
 	case "image/gif":
 	case "image/png":

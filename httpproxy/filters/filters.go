@@ -10,17 +10,42 @@ type Filter interface {
 }
 
 type RequestFilter interface {
-	Filter
+	FilterName() string
 	Request(*Context, *http.Request) (*Context, *http.Request, error)
 }
 
 type RoundTripFilter interface {
-	Filter
+	FilterName() string
 	RoundTrip(*Context, *http.Request) (*Context, *http.Response, error)
 }
 
 type ResponseFilter interface {
-	Filter
+	FilterName() string
+	Response(*Context, *http.Response) (*Context, *http.Response, error)
+}
+
+type RequestRoundTripFilter interface {
+	FilterName() string
+	Request(*Context, *http.Request) (*Context, *http.Request, error)
+	RoundTrip(*Context, *http.Request) (*Context, *http.Response, error)
+}
+
+type RoundTripResponseFilter interface {
+	FilterName() string
+	RoundTrip(*Context, *http.Request) (*Context, *http.Response, error)
+	Response(*Context, *http.Response) (*Context, *http.Response, error)
+}
+
+type RequestResponseFilter interface {
+	FilterName() string
+	Request(*Context, *http.Request) (*Context, *http.Request, error)
+	Response(*Context, *http.Response) (*Context, *http.Response, error)
+}
+
+type RequestRoundTripResponseFilter interface {
+	FilterName() string
+	Request(*Context, *http.Request) (*Context, *http.Request, error)
+	RoundTrip(*Context, *http.Request) (*Context, *http.Response, error)
 	Response(*Context, *http.Response) (*Context, *http.Response, error)
 }
 
