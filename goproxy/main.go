@@ -15,7 +15,6 @@ import (
 
 func main() {
 	addr := *flag.String("addr", "127.0.0.1:8000", "GoProxy Listen Address")
-	flag.Set("logtostderr", "true")
 	flag.Parse()
 
 	ln, err := netutil.Listen("tcp", addr)
