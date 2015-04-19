@@ -33,29 +33,31 @@ func NewFilter() (filters.Filter, error) {
 				InsecureSkipVerify: false,
 			},
 			TLSHandshakeTimeout: 10 * time.Second,
+			DisableCompression:  true,
+			MaxIdleConnsPerHost: 4,
 		},
 	}, nil
 }
 
-func (p *Filter) FilterName() string {
+func (f *Filter) FilterName() string {
 	return "direct"
 }
 
-func (p *Filter) RoundTrip(ctx *filters.Context, req *http.Request) (*filters.Context, *http.Response, error) {
+func (f *Filter) RoundTrip(ctx *filters.Context, req *http.Request) (*filters.Context, *http.Response, error) {
 	if req.Method != "CONNECT" {
 		req1, err := http.NewRequest(req.Method, req.URL.String(), req.Body)
 		if err != nil {
 			return ctx, nil, fmt.Errorf("DIRECT RoundTrip %#v error: %#v", req, err)
 		}
 		req1.Header = req.Header
-		res, err := p.transport.RoundTrip(req1)
+		res, err := f.transport.RoundTrip(req1)
 		if err == nil {
 			glog.Infof("%s \"DIRECT %s %s %s\" %d %s", req.RemoteAddr, req.Method, req.URL.String(), req.Proto, res.StatusCode, res.Header.Get("Content-Length"))
 		}
 		return ctx, res, err
 	} else {
 		glog.Infof("%s \"DIRECT %s %s %s\" - -", req.RemoteAddr, req.Method, req.Host, req.Proto)
-		remote, err := p.transport.Dial("tcp", req.Host)
+		remote, err := f.transport.Dial("tcp", req.Host)
 		if err != nil {
 			return ctx, nil, err
 		}
